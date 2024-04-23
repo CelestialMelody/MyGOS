@@ -81,7 +81,8 @@ impl PageTable {
                 // 获取一个物理页帧
                 let frame = alloc_frame().unwrap();
                 // 用获取到的物理页帧生成新的页表项
-                *pte = PageTableEntry::new(frame.ppn, PTEFlags::V);
+                // *pte = PageTableEntry::new(frame.ppn, "VAD".into());
+                *pte = PageTableEntry::new(frame.ppn, PTEFlags::V | PTEFlags::A | PTEFlags::D);
                 // 将生成的页表项存入页表
                 self.frames.push(frame);
             }
@@ -117,7 +118,7 @@ impl PageTable {
         let pte = self.find_pte_create(vpn).unwrap();
         // 断言, 保证新获取到的PTE是无效的(不是已分配的)
         assert!(!pte.is_valid(), "{:#x?} is mapped before mapping", vpn);
-        *pte = PageTableEntry::new(ppn, flags | PTEFlags::V);
+        *pte = PageTableEntry::new(ppn, flags | PTEFlags::V | PTEFlags::A | PTEFlags::D);
     }
 
     /// 删除一个虚拟页号到物理页号的映射
@@ -170,35 +171,84 @@ impl PageTable {
     }
 }
 
+/// Mask
+#[cfg(feature = "qemu")]
+pub const PTEFLAGS_MASK: usize = 0b11111_11111;
+
+#[cfg(feature = "cvitex")]
+pub const PTEFLAGS_MASK: usize = 0xF800_0000_0000_03FF;
+
 bitflags! {
     /// PTEFlags 一共 10 bits
     #[derive(Clone, Copy, Debug)]
-    pub struct PTEFlags: u16 {
+    pub struct PTEFlags: u64 {
         /// 如果该位置零, 则当前 [`PTE`] 的其他位将失去其应有的意义, 具体意义由软件决定
         ///
         /// 换言之, 如果 MMU 转换过程中遇到 `!contains(PTEFlags::V)` 的情况, 则会引发 Page Fault
-        ///
-        /// [`PTE`]: PageTableEntry
         const V = 1 << 0;
 
+        /// 该 [`PTE`] 指向的物理页是否可读
         const R = 1 << 1;
+        /// 该 [`PTE`] 指向的物理页是否可写
         const W = 1 << 2;
         /// 该 [`PTE`] 指向的物理页是否可执行
-        ///
-        /// [`PTE`]: PageTableEntry
         const X = 1 << 3;
 
         /// 该 [`PTE`] 指向的物理页在用户态是否可以访问
-        ///
-        /// [`PTE`]: PageTableEntry
         const U = 1 << 4;
 
+        /// 该 [`PTE`] 指向的物理页是否被标记为全局页
         const G = 1 << 5;
+        /// 该 [`PTE`] 指向的物理页是否被访问过
         const A = 1 << 6;
+        /// 该 [`PTE`] 指向的物理页是否被写过
         const D = 1 << 7;
 
         /// 页表项指向的物理页帧是否需要写时复制
-        const COW = 1 << 8;
+        const COW = 1 << 8; // RSW 1 << 8, 1 << 9
+
+        // #[cfg(feature = "cvitex")]
+        // const SO = 1 << 63;
+        // #[cfg(feature = "cvitex")]
+        // const C = 1 << 62;
+        // #[cfg(feature = "cvitex")]
+        // const B = 1 << 61;
+        // #[cfg(feature = "cvitex")]
+        // const K = 1 << 60;
+        // #[cfg(feature = "cvitex")]
+        // const SE = 1 << 59;
+
+        // const AD = Self::A.bits() | Self::D.bits();
+        // const VRW   = Self::V.bits() | Self::R.bits() | Self::W.bits();
+        // const VRWX  = Self::V.bits() | Self::R.bits() | Self::W.bits() | Self::X.bits();
+        // const UVRX = Self::U.bits() | Self::V.bits() | Self::R.bits() | Self::X.bits();
+        // const ADUVRX = Self::A.bits() | Self::D.bits() | Self::U.bits() | Self::V.bits() | Self::R.bits() | Self::X.bits();
+        // const UVRWX = Self::U.bits() | Self::VRWX.bits();
+        // const UVRW = Self::U.bits() | Self::VRW.bits();
+        // const GVRWX = Self::G.bits() | Self::VRWX.bits();
+        // const ADVRWX = Self::A.bits() | Self::D.bits() | Self::G.bits() | Self::VRWX.bits();
+        // const ADGVRWX = Self::A.bits() | Self::D.bits() | Self::G.bits() | Self::VRWX.bits();
+    }
+}
+
+impl From<&str> for PTEFlags {
+    fn from(value: &str) -> Self {
+        let mut flags = Self::empty();
+        for c in value.chars() {
+            match c {
+                'V' => flags.insert(PTEFlags::V),
+                'R' => flags.insert(PTEFlags::R),
+                'W' => flags.insert(PTEFlags::W),
+                'X' => flags.insert(PTEFlags::X),
+                'U' => flags.insert(PTEFlags::U),
+                'G' => flags.insert(PTEFlags::G),
+                'A' => flags.insert(PTEFlags::A),
+                'D' => flags.insert(PTEFlags::D),
+                'C' => flags.insert(PTEFlags::COW),
+                _ => panic!("Invalid PTE flag: {}", c),
+            }
+        }
+        flags
     }
 }
 
@@ -225,7 +275,8 @@ impl PageTableEntry {
     }
 
     pub fn flags(&self) -> PTEFlags {
-        PTEFlags::from_bits((self.bits & 0b11111_11111) as u16).unwrap()
+        // PTEFlags::from_bits((self.bits & 0b11111_11111) as u16).unwrap()
+        PTEFlags::from_bits((self.bits & PTEFLAGS_MASK) as u64).unwrap()
     }
 
     pub fn is_valid(&self) -> bool {

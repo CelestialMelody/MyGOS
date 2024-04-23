@@ -17,7 +17,7 @@
 //! the Copy-on-Write mechanism， and you can refer to their implementations.
 
 use super::address::{PhysAddr, PhysPageNum};
-use crate::board::PHYSICAL_MEM_END;
+use crate::boards::PHYSICAL_MEM_END;
 use alloc::{collections::BTreeMap, vec::Vec};
 use core::fmt::{self, Debug, Formatter};
 use spin::Mutex;
@@ -152,10 +152,14 @@ impl FrameAllocator for StackFrameAllocator {
 
 type FrameAllocatorImpl = StackFrameAllocator;
 
-lazy_static! {
-    pub static ref FRAME_ALLOCATOR: Mutex<FrameAllocatorImpl> =
-        Mutex::new(FrameAllocatorImpl::new());
-}
+// lazy_static! {
+//     pub static ref FRAME_ALLOCATOR: Mutex<FrameAllocatorImpl> =
+//         Mutex::new(FrameAllocatorImpl::new());
+// }
+
+use spin::lazy::Lazy;
+pub static FRAME_ALLOCATOR: Lazy<Mutex<FrameAllocatorImpl>> =
+    Lazy::new(|| Mutex::new(FrameAllocatorImpl::new()));
 
 pub fn init() {
     extern "C" {

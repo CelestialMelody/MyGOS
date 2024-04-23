@@ -9,9 +9,12 @@ pub use hanging_task::*;
 use spin::Mutex;
 pub use task_manager::*;
 
-lazy_static! {
-    pub static ref TASK_MANAGER: Mutex<TaskManager> = Mutex::new(TaskManager::new());
-}
+// lazy_static! {
+//     pub static ref TASK_MANAGER: Mutex<TaskManager> = Mutex::new(TaskManager::new());
+// }
+
+use spin::lazy::Lazy;
+pub static TASK_MANAGER: Lazy<Mutex<TaskManager>> = Lazy::new(|| Mutex::new(TaskManager::new()));
 pub fn add_task(task: Arc<TaskControlBlock>) {
     PID2TCB.lock().insert(task.pid(), Arc::clone(&task));
     TASK_MANAGER.lock().add(task);
@@ -43,10 +46,14 @@ pub fn collect_cancelled_chiled_thread(child_thread: Arc<TaskControlBlock>) {
     THREAD_CLEANER.lock().push(child_thread);
 }
 
-lazy_static! {
-    pub static ref PID2TCB: Mutex<BTreeMap<usize, Arc<TaskControlBlock>>> =
-        Mutex::new(BTreeMap::new());
-}
+// lazy_static! {
+//     pub static ref PID2TCB: Mutex<BTreeMap<usize, Arc<TaskControlBlock>>> =
+//         Mutex::new(BTreeMap::new());
+// }
+
+pub static PID2TCB: Lazy<Mutex<BTreeMap<usize, Arc<TaskControlBlock>>>> =
+    Lazy::new(|| Mutex::new(BTreeMap::new()));
+
 pub fn pid2task(pid: usize) -> Option<Arc<TaskControlBlock>> {
     let map = PID2TCB.lock();
     map.get(&pid).map(Arc::clone)

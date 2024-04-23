@@ -41,6 +41,16 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f8fe8f5a8a398345e52358e18ff07cc17a568fbca5c6f73873d3a62056309603"
 
 [[package]]
+name = "bit-struct"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "270fbbb014407467f7a2c9b1fa0b74057d5cbc452f18bac3bb5aad601e590521"
+dependencies = [
+ "num-traits",
+ "serde",
+]
+
+[[package]]
 name = "bit_field"
 version = "0.10.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -101,6 +111,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "fdt"
+version = "0.1.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "784a4df722dc6267a04af36895398f59d21d07dce47232adf31ec0ff2fa45e67"
+
+[[package]]
 name = "fu740-hal"
 version = "0.1.0"
 dependencies = [
@@ -132,9 +148,11 @@ dependencies = [
 name = "kernel"
 version = "0.1.0"
 dependencies = [
+ "bit-struct",
  "bitflags",
  "buddy_system_allocator",
  "fat32",
+ "fdt",
  "fu740-hal",
  "fu740-pac",
  "hashbrown",
@@ -145,6 +163,7 @@ dependencies = [
  "paste",
  "path",
  "riscv 0.10.1",
+ "simple-sync",
  "spin 0.9.8",
  "sync_cell",
  "thiserror-core",
@@ -222,6 +241,15 @@ name = "nix"
 version = "0.1.0"
 dependencies = [
  "bitflags",
+]
+
+[[package]]
+name = "num-traits"
+version = "0.2.18"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "da0df0e5185db44f69b44f26786fe401b6c293d1907744beaa7fa62b2e5a517a"
+dependencies = [
+ "autocfg",
 ]
 
 [[package]]
@@ -324,6 +352,30 @@ name = "scopeguard"
 version = "1.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49"
+
+[[package]]
+name = "serde"
+version = "1.0.193"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "25dd9975e68d0cb5aa1120c288333fc98731bd1dd12f561e468ea4728c042b89"
+dependencies = [
+ "serde_derive",
+]
+
+[[package]]
+name = "serde_derive"
+version = "1.0.193"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "43576ca501357b9b071ac53cdc7da8ef0cbd9493d8df094cd821777ea6e894d3"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn 2.0.29",
+]
+
+[[package]]
+name = "simple-sync"
+version = "0.1.0"
 
 [[package]]
 name = "spin"

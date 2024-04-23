@@ -124,7 +124,7 @@ pub fn sys_mprotect(addr: usize, length: usize, prot: usize) -> Result {
     let token = current_user_token();
     let page_table = PageTable::from_token(token);
 
-    let map_flags = (((prot & 0b111) << 1) + (1 << 4)) as u16;
+    let map_flags = (((prot & 0b111) << 1) + (1 << 4)) as u64;
     let map_perm = MapPermission::from_bits(map_flags).unwrap();
     let pte_flags = PTEFlags::from_bits(map_perm.bits()).unwrap() | PTEFlags::V;
 

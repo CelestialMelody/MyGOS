@@ -1,13 +1,13 @@
 #![no_std]
 extern crate alloc;
 extern crate spin;
-#[macro_use]
-extern crate lazy_static;
-
+// #[macro_use]
+// extern crate lazy_static;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::vec::Vec;
 use riscv::register::time;
+use spin::Lazy;
 use spin::Mutex;
 
 pub fn get_time() -> usize {
@@ -24,10 +24,15 @@ pub fn get_time_ns() -> usize {
     (get_time() / (CLOCK_FREQ / USEC_PER_SEC)) * MSEC_PER_SEC
 }
 
-lazy_static! {
-    pub static ref TIME_ALL: Mutex<BTreeMap<String, usize>> = Mutex::new(BTreeMap::new());
-    pub static ref TIME_STACK: Mutex<Vec<TimeTracer>> = Mutex::new(Vec::new());
-}
+// lazy_static! {
+//     pub static ref TIME_ALL: Mutex<BTreeMap<String, usize>> = Mutex::new(BTreeMap::new());
+//     pub static ref TIME_STACK: Mutex<Vec<TimeTracer>> = Mutex::new(Vec::new());
+// }
+
+// TODO
+pub static TIME_ALL: Lazy<Mutex<BTreeMap<String, usize>>> =
+    Lazy::new(|| Mutex::new(BTreeMap::new()));
+pub static TIME_STACK: Lazy<Mutex<Vec<TimeTracer>>> = Lazy::new(|| Mutex::new(Vec::new()));
 
 pub struct TimeTracer {
     tag: String,

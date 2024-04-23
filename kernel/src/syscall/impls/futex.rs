@@ -20,9 +20,13 @@ use crate::timer::get_time_ns;
 
 use super::Result;
 
-lazy_static! {
-    pub static ref FUTEX_QUEUE: RwLock<HashMap<usize, FutexQueue>> = RwLock::new(HashMap::new());
-}
+// lazy_static! {
+//     pub static ref FUTEX_QUEUE: RwLock<HashMap<usize, FutexQueue>> = RwLock::new(HashMap::new());
+// }
+
+use spin::lazy::Lazy;
+pub static FUTEX_QUEUE: Lazy<RwLock<HashMap<usize, FutexQueue>>> =
+    Lazy::new(|| RwLock::new(HashMap::new()));
 
 /// Argument:
 /// - uaddr: futex address, uaddr points to the futex word

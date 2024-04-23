@@ -33,11 +33,19 @@ impl MountTable {
     }
 }
 
-lazy_static! {
-    pub static ref MNT_TABLE: Arc<Mutex<MountTable>> = {
-        let mnt_table = MountTable {
-            mnt_list: Vec::new(),
-        };
-        Arc::new(Mutex::new(mnt_table))
+// lazy_static! {
+//     pub static ref MNT_TABLE: Arc<Mutex<MountTable>> = {
+//         let mnt_table = MountTable {
+//             mnt_list: Vec::new(),
+//         };
+//         Arc::new(Mutex::new(mnt_table))
+//     };
+// }
+
+use spin::lazy::Lazy;
+pub static MNT_TABLE: Lazy<Arc<Mutex<MountTable>>> = Lazy::new(|| {
+    let mnt_table = MountTable {
+        mnt_list: Vec::new(),
     };
-}
+    Arc::new(Mutex::new(mnt_table))
+});

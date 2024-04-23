@@ -1,0 +1,39 @@
+/*
+ * U-Boot uImage source file for "MyGOS cv181xx"
+ */
+
+/dts-v1/;
+
+/ {
+    description = "U-Boot uImage source file for MyGOS cv181xx";
+    #address-cells = <1>;
+
+    images {
+        kernel {
+            description = "Linux kernel for MyGOS cv181xx";
+            data = /incbin/("./os.bin");
+            type = "kernel";
+            arch = "riscv";
+            os = "linux";
+            compression = "none";
+            load = <0x80200000>;
+            entry = <0x80200000>;
+        };
+        fdt {
+            description = "Flattened Device Tree blob for MyGOS cv181xx (arch/riscv/boot/)";
+            data = /incbin/("./cv1811h.dtb");
+            type = "flat_dt";
+            arch = "riscv";
+            compression = "none";
+        };
+    };
+
+    configurations {
+        default = "conf";
+        conf {
+            description = "Boot Linux kernel with FDT blob";
+            kernel = "kernel";
+            fdt = "fdt";
+        };
+    };
+};

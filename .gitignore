@@ -3,7 +3,4 @@ build/
 temp/
 tmp/
 .vscode/
-client_tui
-/*.dmp
-os_2023_config.json
-log.txt
+.idea/

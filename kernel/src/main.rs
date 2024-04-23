@@ -27,7 +27,7 @@ mod macros;
 #[macro_use]
 mod console;
 
-mod board;
+mod boards;
 mod consts;
 mod drivers;
 mod fs;
@@ -40,7 +40,9 @@ mod task;
 mod timer;
 mod trap;
 
+use fat32::device;
 use sbi::sbi_start_hart;
+use spin::lazy::Lazy;
 
 use crate::consts::NCPU;
 use core::{arch::global_asm, slice, sync::atomic::AtomicBool};
@@ -56,34 +58,83 @@ const BANNER: &str = r#"
 |____/|_|\__\___|_|  |_| |_|\___|_____/|_|___/_|\_\
 "#;
 
-lazy_static! {
-    static ref BOOTED: AtomicBool = AtomicBool::new(false);
+// lazy_static! {
+//     static ref BOOTED: AtomicBool = AtomicBool::new(false);
+// }
+
+static BOOTED: Lazy<AtomicBool> = Lazy::new(|| AtomicBool::new(false));
+
+use riscv::register::sstatus;
+
+#[no_mangle]
+
+extern "C" fn main(hartid: usize, device_tree: usize) -> ! {
+    init_bss();
+    let (hartid, device_tree) = boards::init_device(hartid, device_tree);
+    println!("hartid: {}, device_tree: {:#x}", hartid, device_tree);
+
+    // 开启 SUM
+    unsafe {
+        // 开启浮点运算
+        sstatus::set_fs(sstatus::FS::Dirty);
+
+        meow(hartid, device_tree);
+    }
 }
 
 #[no_mangle]
-pub fn meow() -> ! {
-    if BOOTED.load(core::sync::atomic::Ordering::Relaxed) {
-        other_harts()
+pub fn meow(hartid: usize, device_tree: usize) -> ! {
+    // if BOOTED.load(core::sync::atomic::Ordering::Relaxed) {
+    //     other_harts()
+    // }
+
+    {
+        #[cfg(feature = "cvitex")]
+        if hartid!() == 0 {
+            loop {}
+        }
     }
 
     println!("{}", BANNER);
     println!("Boot hart: {}", hartid!());
 
-    init_bss();
     logging::init();
-    mm::init();
-    trap::init();
-    drivers::init();
-    trap::enable_stimer_interrupt();
-    timer::set_next_trigger();
-    fs::init();
-    task::add_initproc();
+    println!("logging init done");
 
-    BOOTED.store(true, core::sync::atomic::Ordering::Relaxed);
+    mm::init_kernel_heap_allocator();
+    println!("Kernel heap allocator initialized");
+
+    drivers::init(device_tree);
+    println!("drivers init done");
+
+    mm::init();
+    println!("mm init done");
+
+    // get devices and init
+    drivers::prepare_devices();
+    println!("devices prepare done");
+
+    trap::init();
+    println!("trap init done");
+
+    trap::enable_stimer_interrupt();
+    println!("stimer interrupt enabled");
+
+    timer::set_next_trigger();
+    println!("timer set next trigger");
+
+    fs::init();
+    println!("fs init done");
+
+    task::add_initproc();
+    println!("initproc added");
+
+    // BOOTED.store(true, core::sync::atomic::Ordering::Relaxed);
     #[cfg(feature = "multi-harts")]
     wake_other_harts_hsm();
 
     task::run_tasks();
+    println!("task run tasks done");
     unreachable!()
 }
 

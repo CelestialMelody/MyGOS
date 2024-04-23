@@ -38,7 +38,7 @@ mod feature_no_page_cache {
 use feature_no_page_cache::*;
 
 use crate::drivers::BLOCK_DEVICE;
-use crate::fs::{ino_alloc, CreateMode, File, OpenFlags, FilePage};
+use crate::fs::{ino_alloc, CreateMode, File, FilePage, OpenFlags};
 use crate::mm::UserBuffer;
 use crate::return_errno;
 use crate::syscall::impls::Errno;
@@ -50,43 +50,74 @@ use alloc::{
 use fat32::{root, Dir as FatDir, DirError, FileSystem, VirtFile, VirtFileType, ATTR_DIRECTORY};
 use nix::{Dirent, InodeTime, Kstat, S_IFCHR, S_IFDIR, S_IFREG};
 use path::AbsolutePath;
+use spin::lazy::Lazy;
 use spin::{Mutex, MutexGuard};
+
+use simple_sync::SpinLock;
 
 #[cfg(not(feature = "no-page-cache"))]
 pub const INODE_CACHE_LIMIT: usize = 1024;
 
 /// InodeCache is used to cache the Inode of the file. Mainly used for the Open syscall.
 #[cfg(all(not(feature = "no-page-cache"), not(feature = "hash-inode-cache")))]
-pub struct InodeCache(pub RwLock<BTreeMap<AbsolutePath, Arc<Inode>>>);
+// pub struct InodeCache(pub RwLock<BTreeMap<AbsolutePath, Arc<Inode>>>);
+pub struct InodeCache(pub SpinLock<BTreeMap<AbsolutePath, Arc<Inode>>>);
 #[cfg(all(not(feature = "no-page-cache"), feature = "hash-inode-cache"))]
 pub struct InodeCache(pub RwLock<hashbrown::HashMap<AbsolutePath, Arc<Inode>>>);
 #[cfg(all(not(feature = "no-page-cache"), not(feature = "hash-inode-cache")))]
-pub static INODE_CACHE: InodeCache = InodeCache(RwLock::new(BTreeMap::new()));
+// pub static INODE_CACHE: InodeCache = InodeCache(RwLock::new(BTreeMap::new()));
+pub static INODE_CACHE: Lazy<InodeCache> = Lazy::new(|| {
+    println!("open test 0.4");
+    let ret = InodeCache(SpinLock::new(BTreeMap::new()));
+    println!("open test 0.5");
+    ret
+});
+
 #[cfg(all(not(feature = "no-page-cache"), feature = "hash-inode-cache"))]
-lazy_static! {
-    pub static ref INODE_CACHE: InodeCache = InodeCache(RwLock::new(hashbrown::HashMap::new()));
-}
+// lazy_static! {
+// pub static ref INODE_CACHE: InodeCache = InodeCache(RwLock::new(hashbrown::HashMap::new()));
+// }
+pub static INODE_CACHE: Lazy<InodeCache> =
+    Lazy::new(|| InodeCache(RwLock::new(hashbrown::HashMap::new())));
+
 #[cfg(not(feature = "no-page-cache"))]
 #[allow(unused)]
 impl InodeCache {
     pub fn get(&self, path: &AbsolutePath) -> Option<Arc<Inode>> {
-        self.0.read().get(path).cloned()
+        // self.0.read().get(path).cloned()
+        println!("open test 0.6");
+        let r = self.0.lock();
+
+        println!("open test 0.7");
+
+        let g = r.get(path).cloned();
+
+        println!("open test 0.8");
+
+        g
     }
     pub fn insert(&self, path: AbsolutePath, inode: Arc<Inode>) {
-        self.0.write().insert(path, inode);
-        if self.0.read().len() > INODE_CACHE_LIMIT {
+        // self.0.write().insert(path, inode);
+        // if self.0.read().len() > INODE_CACHE_LIMIT {
+        //     self.shrink();
+        // }
+        self.0.lock().insert(path, inode);
+        if self.0.lock().len() > INODE_CACHE_LIMIT {
             self.shrink();
         }
     }
     pub fn remove(&self, path: &AbsolutePath) {
-        self.0.write().remove(path);
+        // self.0.write().remove(path);
+        self.0.lock().remove(path);
     }
     pub fn release(&self) {
-        self.0.write().clear();
+        // self.0.write().clear();
+        self.0.lock().clear();
     }
     pub fn shrink(&self) {
         // remove the item whose Inode strong reference count is 1
-        let mut map = self.0.write();
+        // let mut map = self.0.write();
+        let mut map = self.0.lock();
         let mut remove_list = Vec::new();
         for (path, inode) in map.iter() {
             if Arc::strong_count(inode) == 1 {
@@ -302,12 +333,17 @@ impl KFile {
     }
 }
 
-lazy_static! {
-    pub static ref ROOT_INODE: Arc<VirtFile> = {
-        let fs = FileSystem::open(BLOCK_DEVICE.clone());
-        Arc::new(root(fs.clone()))
-    };
-}
+// lazy_static! {
+//     pub static ref ROOT_INODE: Arc<VirtFile> = {
+//         let fs = FileSystem::open(BLOCK_DEVICE.clone());
+//         Arc::new(root(fs.clone()))
+//     };
+// }
+
+pub static ROOT_INODE: Lazy<Arc<VirtFile>> = Lazy::new(|| {
+    let fs = FileSystem::open(BLOCK_DEVICE.clone());
+    Arc::new(root(fs.clone()))
+});
 
 pub fn list_apps(path: AbsolutePath) {
     let layer: usize = 0;
@@ -345,6 +381,7 @@ pub fn open(path: AbsolutePath, flags: OpenFlags, _mode: CreateMode) -> Result<A
     time_trace!("open");
     let (readable, writable) = flags.read_write();
     let mut pathv = path.as_vec_str();
+
     #[cfg(not(feature = "no-page-cache"))]
     if let Some(inode) = INODE_CACHE.get(&path) {
         let name = if let Some(name_) = pathv.last() {
@@ -359,9 +396,12 @@ pub fn open(path: AbsolutePath, flags: OpenFlags, _mode: CreateMode) -> Result<A
             path.clone(),
             name,
         ));
+
         res.create_page_cache_if_needed();
+
         return Ok(res);
     }
+
     if flags.contains(OpenFlags::O_CREATE) {
         // Create File
         let res = ROOT_INODE.find(pathv.clone());

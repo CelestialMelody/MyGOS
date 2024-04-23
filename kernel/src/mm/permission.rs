@@ -10,7 +10,7 @@ pub enum MapType {
 
 bitflags! {
     #[derive(Clone, Copy, Debug)]
-    pub struct MapPermission: u16 {
+    pub struct MapPermission: u64 {
         const R = 1 << 1;
         const W = 1 << 2;
         const X = 1 << 3;

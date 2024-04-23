@@ -20,16 +20,21 @@ pub use shared_memory::*;
 pub use user_buffer::*;
 pub use vm_area::*;
 
-use crate::{consts::PAGE_SIZE, task::current_task};
+use crate::{boards::init_mmio, consts::PAGE_SIZE, task::current_task};
 use alloc::{string::String, vec::Vec};
 use core::{cmp::min, mem::size_of};
 use riscv::register::satp;
 
 /// Initialize kernel's frame allocator and enable MMU.
 pub fn init() {
-    init_kernel_heap_allocator();
+    init_mmio();
+    println!("MMIO initialized");
+
     init_frame_allocator();
+
+    println!("Frame allocator initialized");
     enable_mmu();
+    println!("MMU enabled");
 }
 
 pub fn init_kernel_heap_allocator() {

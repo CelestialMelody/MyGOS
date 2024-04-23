@@ -2,7 +2,7 @@
 //! [reference](https://github.com/rcore-os/virtio-drivers/tree/master/examples/riscv)
 
 use core::ptr::NonNull;
-use lazy_static::lazy_static;
+// use lazy_static::lazy_static;
 use virtio_drivers::{BufferDirection, Hal, PhysAddr};
 
 use crate::mm::{
@@ -12,9 +12,12 @@ use crate::mm::{
 use alloc::vec::Vec;
 use spin::Mutex;
 
-lazy_static! {
-    static ref DMA_PADDR: Mutex<Vec<FrameTracker>> = Mutex::new(Vec::new());
-}
+// lazy_static! {
+// static ref DMA_PADDR: Mutex<Vec<FrameTracker>> = Mutex::new(Vec::new());
+// }
+
+use spin::lazy::Lazy;
+pub static DMA_PADDR: Lazy<Mutex<Vec<FrameTracker>>> = Lazy::new(|| Mutex::new(Vec::new()));
 
 pub struct HalImpl;
 

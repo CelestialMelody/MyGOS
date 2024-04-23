@@ -4,14 +4,22 @@ use sync_cell::SyncRefCell;
 use crate::task::manager::TASK_MANAGER;
 use crate::task::{task::TaskControlBlock, TaskContext};
 
-lazy_static! {
-    pub static ref PROCESSORS: [SyncRefCell<Processor>; 4] = [
+// lazy_static! {
+//     pub static ref PROCESSORS: [SyncRefCell<Processor>; 4] = [
+//         SyncRefCell::new(Processor::new()),
+//         SyncRefCell::new(Processor::new()),
+//         SyncRefCell::new(Processor::new()),
+//         SyncRefCell::new(Processor::new()),
+//     ];
+// }
+
+use spin::lazy::Lazy;
+pub static PROCESSORS: Lazy<[SyncRefCell<Processor>; 2]> = Lazy::new(|| {
+    [
         SyncRefCell::new(Processor::new()),
         SyncRefCell::new(Processor::new()),
-        SyncRefCell::new(Processor::new()),
-        SyncRefCell::new(Processor::new()),
-    ];
-}
+    ]
+});
 
 pub struct Processor {
     current: Option<Arc<TaskControlBlock>>,

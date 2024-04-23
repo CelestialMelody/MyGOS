@@ -3,7 +3,7 @@ use alloc::{sync::Arc, vec::Vec};
 use path::AbsolutePath;
 
 use super::{MapPermission, MapType, VmArea, VmAreaType};
-use crate::board::CLOCK_FREQ;
+use crate::boards::CLOCK_FREQ;
 use crate::consts::{
     LINK_BASE, MMAP_BASE, PAGE_SIZE, SHM_BASE, SIGNAL_TRAMPOLINE, THREAD_LIMIT, TRAMPOLINE,
     TRAP_CONTEXT_BASE, USER_HEAP_SIZE, USER_STACK_BASE, USER_STACK_SIZE,
@@ -147,7 +147,7 @@ impl MemorySet {
         self.page_table.map(
             VirtAddr::from(TRAMPOLINE).into(),
             PhysAddr::from(strampoline as usize).into(),
-            PTEFlags::R | PTEFlags::X,
+            PTEFlags::R | PTEFlags::X | PTEFlags::A | PTEFlags::D,
         );
     }
 
@@ -158,7 +158,7 @@ impl MemorySet {
         self.page_table.map(
             VirtAddr::from(SIGNAL_TRAMPOLINE).into(),
             PhysAddr::from(user_sigreturn as usize).into(),
-            PTEFlags::R | PTEFlags::X | PTEFlags::U,
+            PTEFlags::R | PTEFlags::X | PTEFlags::U | PTEFlags::A | PTEFlags::D,
         );
     }
 
@@ -726,7 +726,7 @@ impl MemorySet {
             let ppn = frame.ppn;
             self.mmap_manager.frame_trackers.insert(vpn, frame);
             let mmap_page = self.mmap_manager.mmap_map.get_mut(&vpn).unwrap();
-            let pte_flags = PTEFlags::from_bits((mmap_page.prot.bits() << 1 & 0xf) as u16).unwrap();
+            let pte_flags = PTEFlags::from_bits((mmap_page.prot.bits() << 1 & 0xf) as u64).unwrap(); // TODO
             let pte_flags = pte_flags | PTEFlags::U;
             self.page_table.map(vpn, ppn, pte_flags);
             mmap_page.lazy_map_page(self.page_table.token());

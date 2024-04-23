@@ -91,7 +91,7 @@ impl VmArea {
                         panic!("vm area overlap");
                     }
                     self.frame_map.insert(vpn, frame);
-                    let flags = PTEFlags::from_bits(self.permission.bits()).unwrap();
+                    let flags = PTEFlags::from_bits(self.permission.bits()).unwrap(); // TODO premission and flags 统一
                     page_table.map(vpn, ppn, flags);
                 });
             }

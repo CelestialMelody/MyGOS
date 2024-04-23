@@ -9,10 +9,11 @@ use super::{BLOCK_CACHE_LIMIT, BLOCK_SIZE};
 use alloc::sync::Arc;
 use alloc::vec;
 use alloc::vec::Vec;
+use spin::lazy::Lazy;
 // use core::num::NonZeroUsize;
 use core::ops::Drop;
 use core::ops::FnOnce;
-use lazy_static::*;
+// use lazy_static::*;
 use lru::LruCache;
 use spin::{Mutex, RwLock};
 
@@ -91,8 +92,7 @@ impl Cache for BlockCache {
         // TODO need to consider reference count?
         if self.modified {
             self.modified = false;
-            self.block_device
-                .write_block(self.block_id, &self.cache)
+            self.block_device.write_block(self.block_id, &self.cache)
         }
     }
 }
@@ -150,10 +150,15 @@ impl BlockCacheManager {
 }
 
 // create a block cache manager with 64 blocks
-lazy_static! {
-    pub static ref BLOCK_CACHE_MANAGER: Mutex<BlockCacheManager> =
-        Mutex::new(BlockCacheManager::new());
-}
+// lazy_static! {
+//     pub static ref BLOCK_CACHE_MANAGER: Mutex<BlockCacheManager> =
+//         Mutex::new(BlockCacheManager::new());
+// }
+
+// TODO
+pub static BLOCK_CACHE_MANAGER: Lazy<Mutex<BlockCacheManager>> =
+    Lazy::new(|| Mutex::new(BlockCacheManager::new()));
+
 // used for external modules
 pub fn get_block_cache(
     block_id: usize,

@@ -1,8 +1,11 @@
 use core::sync::atomic::AtomicBool;
 
-lazy_static! {
-    pub static ref BOOTED: AtomicBool = core::sync::atomic::AtomicBool::new(false);
-}
+// lazy_static! {
+//     pub static ref BOOTED: AtomicBool = core::sync::atomic::AtomicBool::new(false);
+// }
+
+use spin::lazy::Lazy;
+pub static BOOTED: Lazy<AtomicBool> = Lazy::new(|| AtomicBool::new(false));
 
 macro_rules! synchronize_hart {
     () => {{

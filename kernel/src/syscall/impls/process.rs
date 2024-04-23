@@ -1,6 +1,6 @@
 //! About syscall detail: https://man7.org/linux/man-pages/dir_section_2.html
 
-use crate::board::CLOCK_FREQ;
+use crate::boards::CLOCK_FREQ;
 use crate::fs::{make_pipe, open};
 use crate::mm::{
     copyin, copyout, translated_bytes_buffer, translated_mut, translated_ref, translated_str,

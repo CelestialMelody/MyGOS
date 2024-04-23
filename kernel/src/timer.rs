@@ -1,7 +1,7 @@
 #![allow(unused)]
 
 use crate::{
-    board::CLOCK_FREQ,
+    boards::CLOCK_FREQ,
     sbi::set_timer,
     task::{current_add_signal, current_task, TaskControlBlock},
 };

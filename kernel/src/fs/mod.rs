@@ -48,12 +48,14 @@ pub use pipe::{make_pipe, Pipe};
 pub use stdio::{Stdin, Stdout};
 
 pub fn init() {
+    println!("File system: initializing... 1");
     open(
         "/proc".into(),
         OpenFlags::O_DIRECTROY | OpenFlags::O_CREATE,
         CreateMode::empty(),
     )
     .unwrap();
+    println!("File system: initializing... 2");
     open(
         "/tmp".into(),
         OpenFlags::O_DIRECTROY | OpenFlags::O_CREATE,

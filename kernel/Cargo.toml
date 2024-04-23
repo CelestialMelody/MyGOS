@@ -9,8 +9,10 @@ test = false
 bench = false
 
 [features]
-default = ["static-busybox"]
+default = ["static-busybox", "cvitex"]
 fu740 = []
+qemu = []
+cvitex = []
 dev = []
 multi-harts = []
 static-busybox = []
@@ -32,6 +34,7 @@ log = "0.4"
 paste = "1"
 thiserror = { version = "1.0", package = "thiserror-core", default-features = false }
 hashbrown = "0.14.0"
+fdt = "0.1.5"
 
 fat32 = { path = "../crates/fat32" }
 sync_cell = { path = "../crates/sync_cell" }
@@ -40,3 +43,9 @@ path = { path = "../crates/path" }
 time_tracer = { path = "../crates/time_tracer" }
 fu740-pac = { path = "../crates/fu740-pac" }
 fu740-hal = { path = "../crates/fu740-hal" }
+simple-sync = { path = "../crates/simple-sync" }
+# cv1811h-sd = { path = "../crates/cv1811h-sd" }
+# embedded-sdmmc = "0.7.0"
+
+
+bit-struct = "0.3.2"

@@ -1,12 +1,16 @@
-use crate::{mm::PhysAddr, task::current_task};
 use crate::timer::get_time;
+use crate::{mm::PhysAddr, task::current_task};
 use alloc::{collections::BTreeMap, vec::Vec};
 
 use nix::{CreateMode, SharedMemoryIdentifierDs};
 use spin::Mutex;
-lazy_static! {
-    pub static ref SHM_MANAGER: Mutex<SharedMemoryManager> = Mutex::new(SharedMemoryManager::new());
-}
+// lazy_static! {
+//     pub static ref SHM_MANAGER: Mutex<SharedMemoryManager> = Mutex::new(SharedMemoryManager::new());
+// }
+use spin::lazy::Lazy;
+pub static SHM_MANAGER: Lazy<Mutex<SharedMemoryManager>> =
+    Lazy::new(|| Mutex::new(SharedMemoryManager::new()));
+
 pub struct SharedMemoryManager {
     shm_areas: BTreeMap<usize, SharedMemoryArea>,
 }

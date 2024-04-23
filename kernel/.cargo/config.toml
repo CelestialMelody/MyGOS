@@ -4,8 +4,10 @@ target = "riscv64gc-unknown-none-elf"
 [target.riscv64gc-unknown-none-elf]
 rustflags = ["-Clink-arg=-Tlinkerld/linker.ld", "-Cforce-frame-pointers=yes"]
 
-[source.crates-io]
-replace-with = "vendored-sources"
+# 指定 crate 包源, 用于 offline 编译
+# 添加新的依赖请注释掉下面的内容
+# [source.crates-io]
+# replace-with = "vendored-sources"
 
-[source.vendored-sources]
-directory = "vendor"
+# [source.vendored-sources]
+# directory = "vendor"

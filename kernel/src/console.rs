@@ -7,9 +7,10 @@ use crate::sbi::console_putchar;
 struct Stdout;
 
 #[cfg(feature = "multi-harts")]
-lazy_static! {
-    static ref CONSOLE_PRINT_LOCK: Mutex<()> = Mutex::new(());
-}
+// lazy_static! {
+//     static ref CONSOLE_PRINT_LOCK: Mutex<()> = Mutex::new(());
+// }
+static CONSOLE_PRINT_LOCK: spin::Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
 
 impl Write for Stdout {
     fn write_str(&mut self, s: &str) -> fmt::Result {
