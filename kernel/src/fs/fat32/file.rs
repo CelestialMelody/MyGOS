@@ -47,7 +47,10 @@ use alloc::{
     sync::Arc,
     vec::Vec,
 };
-use fat32::{root, Dir as FatDir, DirError, FileSystem, VirtFile, VirtFileType, ATTR_DIRECTORY};
+// use fat32::{root, Dir as FatDir, DirError, FileSystem, VirtFile, VirtFileType, ATTR_DIRECTORY};
+use crate::fat32::{
+    root, Dir as FatDir, DirError, FileSystem, VirtFile, VirtFileType, ATTR_DIRECTORY,
+};
 use nix::{Dirent, InodeTime, Kstat, S_IFCHR, S_IFDIR, S_IFREG};
 use path::AbsolutePath;
 use spin::lazy::Lazy;
@@ -60,17 +63,18 @@ pub const INODE_CACHE_LIMIT: usize = 1024;
 
 /// InodeCache is used to cache the Inode of the file. Mainly used for the Open syscall.
 #[cfg(all(not(feature = "no-page-cache"), not(feature = "hash-inode-cache")))]
-// pub struct InodeCache(pub RwLock<BTreeMap<AbsolutePath, Arc<Inode>>>);
-pub struct InodeCache(pub SpinLock<BTreeMap<AbsolutePath, Arc<Inode>>>);
+pub struct InodeCache(pub RwLock<BTreeMap<AbsolutePath, Arc<Inode>>>);
+// pub struct InodeCache(pub SpinLock<BTreeMap<AbsolutePath, Arc<Inode>>>);
 #[cfg(all(not(feature = "no-page-cache"), feature = "hash-inode-cache"))]
 pub struct InodeCache(pub RwLock<hashbrown::HashMap<AbsolutePath, Arc<Inode>>>);
 #[cfg(all(not(feature = "no-page-cache"), not(feature = "hash-inode-cache")))]
 // pub static INODE_CACHE: InodeCache = InodeCache(RwLock::new(BTreeMap::new()));
 pub static INODE_CACHE: Lazy<InodeCache> = Lazy::new(|| {
-    println!("open test 0.4");
-    let ret = InodeCache(SpinLock::new(BTreeMap::new()));
-    println!("open test 0.5");
-    ret
+    // println!("open test 0.4");
+    // let ret = InodeCache(SpinLock::new(BTreeMap::new()));
+    // println!("open test 0.5");
+    // ret
+    InodeCache(RwLock::new(BTreeMap::new()))
 });
 
 #[cfg(all(not(feature = "no-page-cache"), feature = "hash-inode-cache"))]
@@ -84,40 +88,31 @@ pub static INODE_CACHE: Lazy<InodeCache> =
 #[allow(unused)]
 impl InodeCache {
     pub fn get(&self, path: &AbsolutePath) -> Option<Arc<Inode>> {
-        // self.0.read().get(path).cloned()
-        println!("open test 0.6");
-        let r = self.0.lock();
-
-        println!("open test 0.7");
-
-        let g = r.get(path).cloned();
-
-        println!("open test 0.8");
-
-        g
+        self.0.read().get(path).cloned()
+        // self.0.lock().get(path).cloned()
     }
     pub fn insert(&self, path: AbsolutePath, inode: Arc<Inode>) {
-        // self.0.write().insert(path, inode);
-        // if self.0.read().len() > INODE_CACHE_LIMIT {
-        //     self.shrink();
-        // }
-        self.0.lock().insert(path, inode);
-        if self.0.lock().len() > INODE_CACHE_LIMIT {
+        self.0.write().insert(path, inode);
+        if self.0.read().len() > INODE_CACHE_LIMIT {
             self.shrink();
         }
+        // self.0.lock().insert(path, inode);
+        // if self.0.lock().len() > INODE_CACHE_LIMIT {
+        //     self.shrink();
+        // }
     }
     pub fn remove(&self, path: &AbsolutePath) {
-        // self.0.write().remove(path);
-        self.0.lock().remove(path);
+        self.0.write().remove(path);
+        // self.0.lock().remove(path);
     }
     pub fn release(&self) {
-        // self.0.write().clear();
-        self.0.lock().clear();
+        self.0.write().clear();
+        // self.0.lock().clear();
     }
     pub fn shrink(&self) {
         // remove the item whose Inode strong reference count is 1
-        // let mut map = self.0.write();
-        let mut map = self.0.lock();
+        let mut map = self.0.write();
+        // let mut map = self.0.lock();
         let mut remove_list = Vec::new();
         for (path, inode) in map.iter() {
             if Arc::strong_count(inode) == 1 {
@@ -340,16 +335,27 @@ impl KFile {
 //     };
 // }
 
+// pub static FILE_SYSTEM: Lazy<FileSystem> = Lazy::new(|| FileSystem::open(BLOCK_DEVICE.clone()));
+
 pub static ROOT_INODE: Lazy<Arc<VirtFile>> = Lazy::new(|| {
+    println!("ROOT_INODE test 0");
     let fs = FileSystem::open(BLOCK_DEVICE.clone());
+    println!("ROOT_INODE test 0.1");
     Arc::new(root(fs.clone()))
 });
 
 pub fn list_apps(path: AbsolutePath) {
     let layer: usize = 0;
 
+    println!("list_apps test 0.1");
+
     fn ls(path: AbsolutePath, layer: usize) {
+        println!("list_apps test 0.2");
         let dir = ROOT_INODE.find(path.as_vec_str()).unwrap();
+
+        println!("list_apps test 0.3");
+        println!("dir name: {:?}", dir.name());
+
         for app in dir.ls_with_attr().unwrap() {
             // no print initproc(However, it is deleted after task::new)
             if layer == 0 && app.0 == "initproc" {
@@ -382,8 +388,11 @@ pub fn open(path: AbsolutePath, flags: OpenFlags, _mode: CreateMode) -> Result<A
     let (readable, writable) = flags.read_write();
     let mut pathv = path.as_vec_str();
 
+    println!("open test 0.1");
+
     #[cfg(not(feature = "no-page-cache"))]
     if let Some(inode) = INODE_CACHE.get(&path) {
+        println!("open test 0.1.1");
         let name = if let Some(name_) = pathv.last() {
             name_.to_string()
         } else {
@@ -397,16 +406,27 @@ pub fn open(path: AbsolutePath, flags: OpenFlags, _mode: CreateMode) -> Result<A
             name,
         ));
 
+        println!("open test 0.1.2");
+
         res.create_page_cache_if_needed();
+
+        println!("open test 0.1.3");
 
         return Ok(res);
     }
 
+    println!("open test 0.2");
+
     if flags.contains(OpenFlags::O_CREATE) {
         // Create File
         let res = ROOT_INODE.find(pathv.clone());
+
+        println!("open test 0.3");
+
         match res {
             Ok(file) => {
+                println!("open test 0.4");
+
                 let name = if let Some(name_) = pathv.pop() {
                     name_
                 } else {
@@ -435,14 +455,24 @@ pub fn open(path: AbsolutePath, flags: OpenFlags, _mode: CreateMode) -> Result<A
                     path.clone(),
                     name.to_string(),
                 ));
+
+                println!("open test 0.5");
+
                 // create page cache
                 #[cfg(not(feature = "no-page-cache"))]
                 res.create_page_cache_if_needed();
+
+                println!("open test 0.6");
+
                 #[cfg(not(feature = "no-page-cache"))]
                 INODE_CACHE.insert(path.clone(), inode.clone());
+
+                println!("open test 0.7");
                 Ok(res)
             }
             Err(_err) => {
+                println!("open test 0.8");
+
                 if _err == DirError::NotDir {
                     return Err(Errno::ENOTDIR);
                 }
@@ -453,10 +483,15 @@ pub fn open(path: AbsolutePath, flags: OpenFlags, _mode: CreateMode) -> Result<A
 
                 // to find parent
                 let name = pathv.pop().unwrap();
+
+                println!("open test 0.9");
+
                 match ROOT_INODE.find(pathv.clone()) {
                     // find parent to create file
                     Ok(parent) => match parent.create(name, create_type as VirtFileType) {
                         Ok(file) => {
+                            println!("open test 0.10");
+
                             let fid = ino_alloc();
                             #[cfg(not(feature = "no-page-cache"))]
                             let file_size = file.file_size();
@@ -497,6 +532,8 @@ pub fn open(path: AbsolutePath, flags: OpenFlags, _mode: CreateMode) -> Result<A
         // Open File
         match ROOT_INODE.find(pathv.clone()) {
             Ok(file) => {
+                println!("open test 0.11");
+
                 // clear file if O_TRUNC
                 if flags.contains(OpenFlags::O_TRUNC) {
                     file.clear();

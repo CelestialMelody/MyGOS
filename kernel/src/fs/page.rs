@@ -1,5 +1,6 @@
 use alloc::sync::{Arc, Weak};
-use fat32::{VirtFile, BLOCK_SIZE};
+// use fat32::{VirtFile, BLOCK_SIZE};
+use crate::fat32::{VirtFile, BLOCK_SIZE};
 use spin::Mutex;
 
 use crate::{

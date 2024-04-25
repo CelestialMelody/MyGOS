@@ -7,7 +7,8 @@ use crate::println;
 use super::spi::{SPIImpl, SPI}; //, SPIExt
 use alloc::sync::Arc;
 use core::convert::TryInto;
-use fat32::BlockDevice;
+// use fat32::BlockDevice;
+use crate::fat32::BlockDevice;
 use fu740_hal::prelude::*;
 use fu740_pac::{gpio, Peripherals, SPI0};
 use log::warn;

@@ -47,7 +47,7 @@ define run-board-fu740
 		-device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
 endef
 define run-board-cv181xx
-	rust-objcopy --binary-architecture=riscv64 $(KERNEL_ELF) --strip-all -O binary o.bin
+	rust-objcopy --binary-architecture=riscv64 $(KERNEL_ELF) --strip-all -O binary os.bin
 endef
 
 ##################################################################

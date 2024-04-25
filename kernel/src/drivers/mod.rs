@@ -6,7 +6,8 @@ use crate::{alloc::string::ToString, drivers::cvitex::init_blk_driver};
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::sync::Arc;
-use fat32::BlockDevice;
+// use fat32::BlockDevice;
+use crate::fat32::BlockDevice;
 
 mod cv1811h_sd;
 mod cvitex;
@@ -25,8 +26,12 @@ use simple_sync::LazyInit;
 // pub static ref BLOCK_DEVICE: Arc<dyn BlockDevice> = Arc::new(BlockDeviceImpl::new());
 // }
 use spin::lazy::Lazy;
-pub static BLOCK_DEVICE: Lazy<Arc<dyn BlockDevice>> =
-    Lazy::new(|| Arc::new(BlockDeviceImpl::new()));
+pub static BLOCK_DEVICE: Lazy<Arc<dyn BlockDevice>> = Lazy::new(|| {
+    println!("init block device");
+    let ret = Arc::new(BlockDeviceImpl::new());
+    println!("init block device done");
+    ret
+});
 
 pub static DEVICE_TREE: LazyInit<Vec<u8>> = LazyInit::new();
 
@@ -115,10 +120,10 @@ pub fn prepare_devices() {
                 .map(|c| c.to_string())
                 .collect::<Vec<String>>()
                 .join(" ");
-            println!("{}:  {}", child.name, info);
+            // println!("{}:  {}", child.name, info);
             for item in compatible.all() {
                 if let Some(f) = driver_manager.get(item) {
-                    println!("add device: {}  {}", child.name, item);
+                    println!("add device: {}  {}, info: {}", child.name, item, info);
                     device_set.add_device(f(&child));
                     break;
                 }
@@ -128,7 +133,8 @@ pub fn prepare_devices() {
 
     // sd card driver
     println!("test 1");
-    device_set.add_device(init_blk_driver());
+    // device_set.add_device(init_blk_driver());
+    init_blk_driver();
     println!("test 2");
     // // register the drivers in the IRQ MANAGER.
     // if let Some(plic) = INT_DEVICE.try_get() {

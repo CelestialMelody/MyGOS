@@ -49,6 +49,9 @@ pub use stdio::{Stdin, Stdout};
 
 pub fn init() {
     println!("File system: initializing... 1");
+
+    list_apps("/".into());
+
     open(
         "/proc".into(),
         OpenFlags::O_DIRECTROY | OpenFlags::O_CREATE,

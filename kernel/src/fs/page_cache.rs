@@ -6,7 +6,8 @@ use alloc::{
     sync::{Arc, Weak},
     vec::Vec,
 };
-use fat32::VirtFile;
+// use fat32::VirtFile;
+use crate::fat32::VirtFile;
 use spin::RwLock;
 
 use crate::{consts::PAGE_SIZE, mm::MapPermission, syscall::impls::Errno};

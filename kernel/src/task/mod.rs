@@ -24,7 +24,8 @@ use crate::{
     syscall::impls::futex::futex_wake,
 };
 use alloc::sync::Arc;
-use fat32::sync_all;
+// use fat32::sync_all;
+use crate::fat32::sync_all;
 
 pub use self::{
     initproc::INITPROC,

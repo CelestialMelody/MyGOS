@@ -33,10 +33,9 @@ linked_list_allocator = "0.10.5"
 log = "0.4"
 paste = "1"
 thiserror = { version = "1.0", package = "thiserror-core", default-features = false }
-hashbrown = "0.14.0"
 fdt = "0.1.5"
 
-fat32 = { path = "../crates/fat32" }
+# fat32 = { path = "../crates/fat32" }
 sync_cell = { path = "../crates/sync_cell" }
 nix = { path = "../crates/nix" }
 path = { path = "../crates/path" }
@@ -49,3 +48,5 @@ simple-sync = { path = "../crates/simple-sync" }
 
 
 bit-struct = "0.3.2"
+hashbrown = "0.14"
+lru = "0.11.0"

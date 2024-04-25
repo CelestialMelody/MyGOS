@@ -40,7 +40,10 @@ mod task;
 mod timer;
 mod trap;
 
-use fat32::device;
+// use fat32::device;
+mod fat32;
+use crate::fat32::device;
+
 use sbi::sbi_start_hart;
 use spin::lazy::Lazy;
 
