@@ -43,6 +43,26 @@ sdcard:
 	&& cp ../workspace/sdcard.img.bak ../workspace/sdcard.img
 	@echo 'sdcard.img, sdcard.img.bak have been created successfully! You are ready to go :-)'
 
+# 使用 Dockerfile 构建的镜像名
+DOCKER_IMAGE_NAME :=
+# 使用 docker run 启动的容器名
+CONTAINER_NAME :=
+# 将主机工作目录挂载到容器内的 /mnt 目录
+WORKPLACE :=  
+# 主机端口
+HOST_PORT :=
+# 容器端口
+CONTAINER_PORT :=
+# 使用 Dockerfile 构建镜像
+build_docker:
+	docker build -t ${DOCKER_IMAGE_NAME} .
+# 使用 Dockerfile 创建并启动容器
+run_docker:
+	docker run -p ${HOST_PORT}:${CONTAINER_PORT} --name ${CONTAINER_NAME} -v ${WORKPLACE}:/mnt -w /mnt -it -d ${DOCKER_NAME} bash
+# 进入容器
+exec_docker:
+	docker exec -it ${CONTAINER_NAME} bash
+
 clean:
 	@rm -f kernel-qemu
 	@cd kernel/ && cargo clean
