@@ -44,21 +44,21 @@ sdcard:
 	@echo 'sdcard.img, sdcard.img.bak have been created successfully! You are ready to go :-)'
 
 # 使用 Dockerfile 构建的镜像名
-DOCKER_IMAGE_NAME :=
+DOCKER_IMAGE_NAME := kernel-dev-env
 # 使用 docker run 启动的容器名
-CONTAINER_NAME :=
+CONTAINER_NAME := os-env-test
 # 将主机工作目录挂载到容器内的 /mnt 目录
-WORKPLACE :=  
+WORKPLACE := /mnt/d/wsl/comp
 # 主机端口
-HOST_PORT :=
+HOST_PORT := 9090
 # 容器端口
-CONTAINER_PORT :=
+CONTAINER_PORT := 9090
 # 使用 Dockerfile 构建镜像
 build_docker:
 	docker build -t ${DOCKER_IMAGE_NAME} .
 # 使用 Dockerfile 创建并启动容器
 run_docker:
-	docker run -p ${HOST_PORT}:${CONTAINER_PORT} --name ${CONTAINER_NAME} -v ${WORKPLACE}:/mnt -w /mnt -it -d ${DOCKER_NAME} bash
+	docker run -p ${HOST_PORT}:${CONTAINER_PORT} --name ${CONTAINER_NAME} -v ${WORKPLACE}:/mnt -w /mnt -it -d ${DOCKER_IMAGE_NAME} bash
 # 进入容器
 exec_docker:
 	docker exec -it ${CONTAINER_NAME} bash

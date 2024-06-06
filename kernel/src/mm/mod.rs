@@ -20,17 +20,28 @@ pub use shared_memory::*;
 pub use user_buffer::*;
 pub use vm_area::*;
 
-use crate::{boards::init_mmio, consts::PAGE_SIZE, task::current_task};
+#[cfg(feature = "cvitex")]
+use crate::boards::init_mmio;
+
+use crate::{consts::PAGE_SIZE, task::current_task};
+
 use alloc::{string::String, vec::Vec};
 use core::{cmp::min, mem::size_of};
 use riscv::register::satp;
 
 /// Initialize kernel's frame allocator and enable MMU.
 pub fn init() {
+    #[cfg(feature = "cvitex")]
     init_mmio();
     println!("MMIO initialized");
 
     init_frame_allocator();
+    // {
+    //     let clone_kvmm = KERNEL_VMM.clone();
+    //     println!("test arc clone");
+    //     let kvmm_addr_clone = unsafe { &clone_kvmm as *const _ as usize };
+    //     println!("kvmm_addr_clone: {:#x}", kvmm_addr_clone);
+    // }
 
     println!("Frame allocator initialized");
     enable_mmu();
@@ -46,7 +57,23 @@ pub fn init_frame_allocator() {
 }
 
 pub fn enable_mmu() {
-    satp::write(acquire_kvmm().token());
+    // {
+    //     let kvmm_addr = unsafe { &KERNEL_VMM as *const _ as usize };
+    //     println!("kvmm_addr: {:#x}", kvmm_addr);
+    // }
+    // {
+    //     let clone_kvmm = KERNEL_VMM.clone();
+    //     println!("test arc clone");
+    //     let kvmm_addr_clone = unsafe { &clone_kvmm as *const _ as usize };
+    //     println!("kvmm_addr_clone: {:#x}", kvmm_addr_clone);
+    // }
+
+    let token = acquire_kvmm().token();
+    println!("token: {:#x}", token);
+
+    // satp::write(acquire_kvmm().token());
+    satp::write(token);
+
     unsafe { core::arch::asm!("sfence.vma") } // Refresh MMU's TLB
 }
 

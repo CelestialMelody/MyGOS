@@ -2,8 +2,10 @@
 
 use super::virtio_impl::HalImpl;
 use core::ptr::NonNull;
-// use fat32::{BlockDevice, BLOCK_SIZE};
-use crate::fat32::{BlockDevice, BLOCK_SIZE};
+
+use fat32::{BlockDevice, BLOCK_SIZE};
+// use crate::fat32::{BlockDevice, BLOCK_SIZE};
+
 use spin::Mutex;
 use virtio_drivers::{
     device::blk::VirtIOBlk,

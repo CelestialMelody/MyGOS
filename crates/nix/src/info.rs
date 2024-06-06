@@ -12,12 +12,12 @@ pub struct Utsname {
 impl Utsname {
     pub fn get() -> Self {
         Self {
-            sysname: Utsname::str2u8("BTD-OS"),
-            nodename: Utsname::str2u8("zako-zako~"),
-            release: Utsname::str2u8("5.0"),
-            version: Utsname::str2u8("5.13"),
+            sysname: Utsname::str2u8("MyGOS"),
+            nodename: Utsname::str2u8("Clstilmldy"),
+            release: Utsname::str2u8("0.1"),
+            version: Utsname::str2u8("0.1"),
             machine: Utsname::str2u8("riscv64"),
-            domainname: Utsname::str2u8("BiteTheDisk"),
+            domainname: Utsname::str2u8("MyGOS"),
         }
     }
 

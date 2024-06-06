@@ -1,4 +1,5 @@
 OUTPUT_ARCH( "riscv" )
+/* _entry see entry.S */
 ENTRY( _entry )
 
 SECTIONS
@@ -8,13 +9,18 @@ SECTIONS
 
     stext = .;
     .text : {
+        /* .text.entry see entry.S */
         *(.text.entry)
         . = ALIGN(0x1000);
+        /* text0 = .*/
         strampoline = .;
+        /* .text.trampoline see trampoline.S */
         *(.text.trampoline);
         . = ALIGN(0x1000);
+        /* text1 = .*/
         *(.text.signal);
         . = ALIGN(0x1000);
+        /* text2 = .*/
         *(.text .text.*)
     }
     . = ALIGN(0x1000);
@@ -39,6 +45,7 @@ SECTIONS
     sbss = .;
     .bss : {
         skstack0 = .;
+        /* .bss.stack see entry.S */
         *(.bss.stack)
         ekstack0 = .;
         *(.bss .bss.*)

@@ -2,22 +2,22 @@
 //!
 //! [board]: crate::board
 
-use crate::{alloc::string::ToString, drivers::cvitex::init_blk_driver};
+use crate::alloc::string::ToString;
 use alloc::collections::BTreeMap;
 use alloc::string::String;
 use alloc::sync::Arc;
-// use fat32::BlockDevice;
-use crate::fat32::BlockDevice;
+
+use fat32::{device, BlockDevice};
+// use crate::fat32::BlockDevice;
 
 mod cv1811h_sd;
-mod cvitex;
-mod fu740;
+pub mod cvitex;
 mod qemu;
 
 #[cfg(feature = "cvitex")]
+use crate::{boards::DEVICE_TREE, drivers::cvitex::init_blk_driver};
+#[cfg(feature = "cvitex")]
 use cvitex::BlockDeviceImpl;
-#[cfg(feature = "fu740")]
-use fu740::BlockDeviceImpl;
 #[cfg(feature = "qemu")]
 use qemu::BlockDeviceImpl;
 
@@ -27,25 +27,30 @@ use simple_sync::LazyInit;
 // }
 use spin::lazy::Lazy;
 pub static BLOCK_DEVICE: Lazy<Arc<dyn BlockDevice>> = Lazy::new(|| {
-    println!("init block device");
     let ret = Arc::new(BlockDeviceImpl::new());
-    println!("init block device done");
     ret
 });
 
-pub static DEVICE_TREE: LazyInit<Vec<u8>> = LazyInit::new();
+// pub static BLOCK_DEVICE: Lazy<Arc<BlockDeviceImpl>> = Lazy::new(|| {
+//     println!("init block device");
+//     let ret = Arc::new(BlockDeviceImpl::new());
+//     println!("init block device done");
+//     ret
+// });
 
-/// Initialize platform specific device drivers.
-#[cfg(feature = "cvitex")]
-pub fn init(device_tree: usize) {
-    let fdt = unsafe { Fdt::from_ptr(device_tree as *const u8).unwrap() };
-    let mut device_tree_buf = vec![0u8; fdt.total_size()];
+// pub static DEVICE_TREE: LazyInit<Vec<u8>> = LazyInit::new();
 
-    device_tree_buf.copy_from_slice(unsafe {
-        core::slice::from_raw_parts(device_tree as *const u8, fdt.total_size())
-    });
-    DEVICE_TREE.init_with(device_tree_buf);
-}
+// /// Initialize platform specific device drivers.
+// #[cfg(feature = "cvitex")]
+// pub fn init(device_tree: usize) {
+//     let fdt = unsafe { Fdt::from_ptr(device_tree as *const u8).unwrap() };
+//     let mut device_tree_buf = vec![0u8; fdt.total_size()];
+
+//     device_tree_buf.copy_from_slice(unsafe {
+//         core::slice::from_raw_parts(device_tree as *const u8, fdt.total_size())
+//     });
+//     DEVICE_TREE.init_with(device_tree_buf);
+// }
 
 mod divice;
 
@@ -57,24 +62,6 @@ pub static DEVICE_SET: Mutex<DeviceSet> = Mutex::new(DeviceSet::new());
 
 pub static DRIVER_REGIONS: Mutex<BTreeMap<&str, fn(&FdtNode) -> Arc<dyn Driver>>> =
     Mutex::new(BTreeMap::new());
-
-// pub fn init_drivers(node: &FdtNode) {
-//     let driver_manager = DRIVER_REGIONS.lock();
-//     if let Some(compatible) = node.compatible() {
-//         let info = compatible
-//             .all()
-//             .map(|c| c.to_string())
-//             .collect::<Vec<String>>()
-//             .join(" ");
-//         println!("{}:  {}", node.name, info);
-//         for item in compatible.all() {
-//             if let Some(f) = driver_manager.get(item) {
-//                 DEVICE_SET.lock().add_device(f(&node));
-//                 break;
-//             }
-//         }
-//     }
-// }
 
 #[inline]
 pub fn get_blk_device(id: usize) -> Option<Arc<dyn BlkDriver>> {
@@ -93,9 +80,13 @@ pub fn get_blk_devices() -> Vec<Arc<dyn BlkDriver>> {
     DEVICE_SET.lock().blk.clone()
 }
 
-pub fn prepare_devices() {
+pub fn prepare_devices(device_tree: usize) {
+    #[cfg(feature = "cvitex")]
+    let fdt: Fdt<'_> = Fdt::new(DEVICE_TREE.as_ref()).unwrap();
+    #[cfg(feature = "qemu")]
+    let fdt = unsafe { Fdt::from_ptr(device_tree as *const u8).unwrap() };
+
     let mut device_set = DEVICE_SET.lock();
-    let fdt = Fdt::new(DEVICE_TREE.as_ref()).unwrap();
     println!("There has {} CPU(s)", fdt.cpus().count());
 
     fdt.memory().regions().for_each(|x| {
@@ -132,10 +123,9 @@ pub fn prepare_devices() {
     }
 
     // sd card driver
-    println!("test 1");
     // device_set.add_device(init_blk_driver());
+    #[cfg(feature = "cvitex")]
     init_blk_driver();
-    println!("test 2");
     // // register the drivers in the IRQ MANAGER.
     // if let Some(plic) = INT_DEVICE.try_get() {
     //     for (irq, driver) in IRQ_MANAGER.lock().iter() {

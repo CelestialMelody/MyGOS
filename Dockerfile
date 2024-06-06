@@ -87,7 +87,7 @@ WORKDIR ${HOME}/riscv-gnu-toolchain
 ENV RISCV_GNU_TOOLCHAIN_HOME=/usr/local/riscv-gnu-toolchain \
     PATH=/usr/local/riscv-gnu-toolchain/bin:$PATH
 RUN    ./configure --prefix=/usr/local/riscv-gnu-toolchain && make -j$(nproc)
-# RUN export PATH="$PATH:/usr/local/opt/riscv-gnu-toolchain/bin" # add to .bashrc
+# RUN export PATH="$PATH:/usr/local/riscv-gnu-toolchain/bin" # add to .bashrc
 
 # 5. debug tools
 RUN apt-get update && \

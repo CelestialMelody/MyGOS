@@ -1,8 +1,8 @@
 pub const USER_STACK_SIZE: usize = 4096 * 2048;
-pub const KERNEL_STACK_SIZE: usize = 4096 * 32;
+pub const KERNEL_STACK_SIZE: usize = 4096 * 32; // 128K
 
 pub const USER_HEAP_SIZE: usize = 4096 * 30000;
-pub const KERNEL_HEAP_SIZE: usize = 4096 * 8192; // 32M
+pub const KERNEL_HEAP_SIZE: usize = 4096 * 8192 * 2; // 32M
 
 pub const PAGE_SIZE: usize = 0x1000;
 

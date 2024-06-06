@@ -12,6 +12,7 @@ use crate::{
     task::{current_task, current_user_token},
 };
 
+use bitflags::Flags;
 use nix::ipc::{IPC_PRIVATE, IPC_RMID};
 use nix::MmapFlags;
 use nix::MmapProts;
@@ -126,7 +127,8 @@ pub fn sys_mprotect(addr: usize, length: usize, prot: usize) -> Result {
 
     let map_flags = (((prot & 0b111) << 1) + (1 << 4)) as u64;
     let map_perm = MapPermission::from_bits(map_flags).unwrap();
-    let pte_flags = PTEFlags::from_bits(map_perm.bits()).unwrap() | PTEFlags::V;
+    // let pte_flags = PTEFlags::from_bits(map_perm.bits()).unwrap() | PTEFlags::V;
+    let pte_flags = PTEFlags::from_map_permission(map_perm) | PTEFlags::V;
 
     let start_va = VirtAddr::from(addr);
     let end_va = VirtAddr::from(addr + length);

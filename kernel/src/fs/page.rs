@@ -1,6 +1,8 @@
 use alloc::sync::{Arc, Weak};
-// use fat32::{VirtFile, BLOCK_SIZE};
-use crate::fat32::{VirtFile, BLOCK_SIZE};
+
+use fat32::{VirtFile, BLOCK_SIZE};
+// use crate::fat32::{VirtFile, BLOCK_SIZE};
+
 use spin::Mutex;
 
 use crate::{
@@ -94,7 +96,8 @@ impl FilePage {
 
     /// Sync all buffers if needed
     pub fn sync(&self) -> Result<(), Errno> {
-        let file_info = self.file_info.as_ref().unwrap().lock();
+        // let file_info = self.file_info.as_ref().unwrap().lock();
+        let mut file_info = self.file_info.as_ref().unwrap().lock();
         let inode = file_info.inode.upgrade().ok_or(Errno::EBADF)?;
         // let file_size = inode.file_size();
         // log::trace!("[Page::sync] sync page, file offset {:#x}",file_info.file_offset);

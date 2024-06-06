@@ -24,8 +24,9 @@ use crate::{
     syscall::impls::futex::futex_wake,
 };
 use alloc::sync::Arc;
-// use fat32::sync_all;
-use crate::fat32::sync_all;
+
+use fat32::sync_all;
+// use crate::fat32::sync_all;
 
 pub use self::{
     initproc::INITPROC,
@@ -45,6 +46,7 @@ pub fn suspend_current_and_run_next() -> isize {
     0
 }
 
+// TODO
 pub fn exit_current_and_run_next(exit_code: i32) {
     let task = take_current_task().unwrap();
 

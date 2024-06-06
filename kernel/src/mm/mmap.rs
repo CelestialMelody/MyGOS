@@ -17,7 +17,7 @@ pub struct MmapManager {
     pub mmap_start: VirtAddr,
     pub mmap_top: VirtAddr,
     pub mmap_map: BTreeMap<VirtPageNum, MmapPage>,
-    pub frame_trackers: BTreeMap<VirtPageNum, FrameTracker>,
+    pub frame_map: BTreeMap<VirtPageNum, FrameTracker>,
 }
 impl MmapManager {
     pub fn new(mmap_start: VirtAddr, mmap_top: VirtAddr) -> Self {
@@ -25,7 +25,7 @@ impl MmapManager {
             mmap_start,
             mmap_top,
             mmap_map: BTreeMap::new(),
-            frame_trackers: BTreeMap::new(),
+            frame_map: BTreeMap::new(),
         }
     }
     pub fn get_mmap_top(&mut self) -> VirtAddr {
@@ -59,7 +59,7 @@ impl MmapManager {
         let end_va = VirtAddr(start_va.0 + len);
         for vpn in VPNRange::from_va(start_va, end_va) {
             self.mmap_map.remove(&vpn);
-            self.frame_trackers.remove(&vpn);
+            self.frame_map.remove(&vpn);
         }
     }
 }

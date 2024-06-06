@@ -12,8 +12,10 @@ use crate::timer::{get_time, get_timeval};
 
 use alloc::{sync::Arc, vec::Vec};
 use core::mem::size_of;
-// use fat32::sync_all;
-use crate::fat32::sync_all;
+
+use fat32::sync_all;
+// use crate::fat32::sync_all;
+
 use nix::time::{TimeSpec, TimeVal};
 use nix::{
     CreateMode, Dirent, FcntlFlags, InodeTime, Kstat, OpenFlags, SeekFlags, Statfs, AT_FDCWD,

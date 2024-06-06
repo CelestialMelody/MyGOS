@@ -20,9 +20,11 @@
 //! ```
 
 use super::address::{PhysAddr, PhysPageNum, VirtAddr, VirtPageNum};
+use super::permission::MapPermission;
 use super::{alloc_frame, FrameTracker};
 use alloc::vec::Vec;
 use bitflags::*;
+use nix::MmapProts;
 
 #[derive(Debug)]
 pub struct PageTable {
@@ -82,7 +84,7 @@ impl PageTable {
                 let frame = alloc_frame().unwrap();
                 // 用获取到的物理页帧生成新的页表项
                 // *pte = PageTableEntry::new(frame.ppn, "VAD".into());
-                *pte = PageTableEntry::new(frame.ppn, PTEFlags::V | PTEFlags::A | PTEFlags::D);
+                *pte = PageTableEntry::new(frame.ppn, PTEFlags::V);
                 // 将生成的页表项存入页表
                 self.frames.push(frame);
             }
@@ -118,7 +120,7 @@ impl PageTable {
         let pte = self.find_pte_create(vpn).unwrap();
         // 断言, 保证新获取到的PTE是无效的(不是已分配的)
         assert!(!pte.is_valid(), "{:#x?} is mapped before mapping", vpn);
-        *pte = PageTableEntry::new(ppn, flags | PTEFlags::V | PTEFlags::A | PTEFlags::D);
+        *pte = PageTableEntry::new(ppn, flags | PTEFlags::V);
     }
 
     /// 删除一个虚拟页号到物理页号的映射
@@ -179,7 +181,6 @@ pub const PTEFLAGS_MASK: usize = 0b11111_11111;
 pub const PTEFLAGS_MASK: usize = 0xF800_0000_0000_03FF;
 
 bitflags! {
-    /// PTEFlags 一共 10 bits
     #[derive(Clone, Copy, Debug)]
     pub struct PTEFlags: u64 {
         /// 如果该位置零, 则当前 [`PTE`] 的其他位将失去其应有的意义, 具体意义由软件决定
@@ -207,46 +208,61 @@ bitflags! {
         /// 页表项指向的物理页帧是否需要写时复制
         const COW = 1 << 8; // RSW 1 << 8, 1 << 9
 
-        // #[cfg(feature = "cvitex")]
-        // const SO = 1 << 63;
-        // #[cfg(feature = "cvitex")]
-        // const C = 1 << 62;
-        // #[cfg(feature = "cvitex")]
-        // const B = 1 << 61;
-        // #[cfg(feature = "cvitex")]
-        // const K = 1 << 60;
-        // #[cfg(feature = "cvitex")]
-        // const SE = 1 << 59;
-
-        // const AD = Self::A.bits() | Self::D.bits();
-        // const VRW   = Self::V.bits() | Self::R.bits() | Self::W.bits();
-        // const VRWX  = Self::V.bits() | Self::R.bits() | Self::W.bits() | Self::X.bits();
-        // const UVRX = Self::U.bits() | Self::V.bits() | Self::R.bits() | Self::X.bits();
-        // const ADUVRX = Self::A.bits() | Self::D.bits() | Self::U.bits() | Self::V.bits() | Self::R.bits() | Self::X.bits();
-        // const UVRWX = Self::U.bits() | Self::VRWX.bits();
-        // const UVRW = Self::U.bits() | Self::VRW.bits();
-        // const GVRWX = Self::G.bits() | Self::VRWX.bits();
-        // const ADVRWX = Self::A.bits() | Self::D.bits() | Self::G.bits() | Self::VRWX.bits();
-        // const ADGVRWX = Self::A.bits() | Self::D.bits() | Self::G.bits() | Self::VRWX.bits();
+        #[cfg(feature = "cvitex")]
+        const SO = 1 << 63;
+        #[cfg(feature = "cvitex")]
+        const C = 1 << 62;
+        #[cfg(feature = "cvitex")]
+        const B = 1 << 61;
+        #[cfg(feature = "cvitex")]
+        const SEC = 1 << 59;
     }
 }
 
-impl From<&str> for PTEFlags {
-    fn from(value: &str) -> Self {
-        let mut flags = Self::empty();
-        for c in value.chars() {
-            match c {
-                'V' => flags.insert(PTEFlags::V),
-                'R' => flags.insert(PTEFlags::R),
-                'W' => flags.insert(PTEFlags::W),
-                'X' => flags.insert(PTEFlags::X),
-                'U' => flags.insert(PTEFlags::U),
-                'G' => flags.insert(PTEFlags::G),
-                'A' => flags.insert(PTEFlags::A),
-                'D' => flags.insert(PTEFlags::D),
-                'C' => flags.insert(PTEFlags::COW),
-                _ => panic!("Invalid PTE flag: {}", c),
-            }
+impl PTEFlags {
+    pub fn from_map_permission(permission: MapPermission) -> Self {
+        let mut flags = PTEFlags::V;
+        if permission.contains(MapPermission::R) {
+            flags |= PTEFlags::R;
+        }
+        if permission.contains(MapPermission::W) {
+            flags |= PTEFlags::W;
+        }
+        if permission.contains(MapPermission::X) {
+            flags |= PTEFlags::X;
+        }
+        if permission.contains(MapPermission::U) {
+            flags |= PTEFlags::U;
+        }
+        #[cfg(feature = "cvitex")]
+        if flags.contains(PTEFlags::R) | flags.contains(PTEFlags::X) {
+            flags = flags.union(PTEFlags::A)
+        }
+        #[cfg(feature = "cvitex")]
+        if flags.contains(PTEFlags::W) {
+            flags = flags.union(PTEFlags::D)
+        }
+        flags
+    }
+
+    pub fn from_map_ports(prots: MmapProts) -> Self {
+        let mut flags = PTEFlags::empty();
+        if prots.contains(MmapProts::PROT_READ) {
+            flags |= PTEFlags::R;
+        }
+        if prots.contains(MmapProts::PROT_WRITE) {
+            flags |= PTEFlags::W;
+        }
+        if prots.contains(MmapProts::PROT_EXEC) {
+            flags |= PTEFlags::X;
+        }
+        #[cfg(feature = "cvitex")]
+        if flags.contains(PTEFlags::R) | flags.contains(PTEFlags::X) {
+            flags = flags.union(PTEFlags::A)
+        }
+        #[cfg(feature = "cvitex")]
+        if flags.contains(PTEFlags::W) {
+            flags = flags.union(PTEFlags::D)
         }
         flags
     }
@@ -261,6 +277,31 @@ pub struct PageTableEntry {
 impl PageTableEntry {
     /// 从一个物理页号 `PhysPageNum` 和一个页表项标志位 `PTEFlags` 生成一个页表项 `PageTableEntry` 实例
     pub fn new(ppn: PhysPageNum, flags: PTEFlags) -> Self {
+        let mut flags = flags;
+        #[cfg(feature = "cvitex")]
+        if flags.contains(PTEFlags::R) | flags.contains(PTEFlags::X) {
+            flags = flags.union(PTEFlags::A)
+        }
+        #[cfg(feature = "cvitex")]
+        if flags.contains(PTEFlags::W) {
+            flags = flags.union(PTEFlags::D)
+        }
+        #[cfg(feature = "cvitex")]
+        // 内核和设备地址空间所设置的 PTE 额外属性值不同
+        if flags.contains(PTEFlags::G) && ppn.in_memory() {
+            PageTableEntry {
+                bits: ppn.0 << 10 | flags.union(PTEFlags::C).union(PTEFlags::B).bits() as usize,
+            }
+        } else if flags.contains(PTEFlags::G) && ppn.in_device() {
+            PageTableEntry {
+                bits: ppn.0 << 10 | flags.union(PTEFlags::SO).bits() as usize,
+            }
+        } else {
+            PageTableEntry {
+                bits: ppn.0 << 10 | flags.union(PTEFlags::C).bits() as usize,
+            }
+        }
+        #[cfg(feature = "qemu")]
         PageTableEntry {
             bits: ppn.0 << 10 | flags.bits() as usize,
         }
@@ -275,8 +316,16 @@ impl PageTableEntry {
     }
 
     pub fn flags(&self) -> PTEFlags {
-        // PTEFlags::from_bits((self.bits & 0b11111_11111) as u16).unwrap()
-        PTEFlags::from_bits((self.bits & PTEFLAGS_MASK) as u64).unwrap()
+        let mut flags = PTEFlags::from_bits((self.bits & PTEFLAGS_MASK) as u64).unwrap();
+        #[cfg(feature = "cvitex")]
+        if flags.contains(PTEFlags::R) | flags.contains(PTEFlags::X) {
+            flags.union(PTEFlags::A)
+        }
+        #[cfg(feature = "cvitex")]
+        if flags.contains(PTEFlags::W) {
+            flags.union(PTEFlags::D)
+        }
+        flags
     }
 
     pub fn is_valid(&self) -> bool {

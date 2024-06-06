@@ -33,7 +33,9 @@
 .globl user_trapvec
 .align 2
 user_trapvec:
-	# sscratch 中存放着 trap 的虚拟地址 TRAP_CONTEXT
+	# sscratch 中存放着 trap 上下文的虚拟地址
+	# sp 为用户栈的栈顶地址
+	# 交换 sp 和 sscratch 的值
 	csrrw sp, sscratch, sp
 
 	# 保存除了 x0, sp 的其他通用寄存器
@@ -53,6 +55,7 @@ user_trapvec:
 	sd t1, 33*8(sp)
 
 	# read user stack from sscratch and save it in TrapContext
+	# 此时 sscratch 寄存器的值为用户栈栈帧 sp, 读取并保存至 TrapContext
 	csrr t2, sscratch
 	sd t2, 2*8(sp)
 
@@ -76,10 +79,20 @@ user_trapvec:
 	# 将 sp 设置到内核栈
 	ld sp, 35*8(sp)
 
+    ##                    ##
+	## 				      ##
+	###### USER SPACE ######
+
+
 	# 切换到内核地址空间
 	csrw satp, t0
 
+	# 刷新 TLB 缓存
 	sfence.vma
+
+	##### KERNEL SPACE #####
+	##                    ##
+	##                    ##
 
 	# 跳转到 trap 处理函数
 	jr t1
@@ -89,13 +102,22 @@ user_trapvec:
 user_trapret:
 	# 进到当前代码前由 Rust 代码设置:
 	# a0 = TRAP_CONTEXT;         // TrapContext 在用户地址空间中的虚拟地址
-	# a1 = current_user_token(); // 当前任务的 satp
+	# a1 = current_user_token(); // 当前任务的 satp (用户地址空间的token)
+
+
+	##					  ##
+	##					  ##
+	##### KERNEL SPACE #####
 
 	# 切换到应用地址空间
 	csrw satp, a1
 
 	# 刷新 MMU 的 TLB
 	sfence.vma
+
+	###### USER SPACE ######
+	##                    ##
+	##                    ##
 
 	# 将 TrapContext 的值存入 sscratch, 供 user_trapvec 使用
 	csrw sscratch, a0

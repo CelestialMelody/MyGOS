@@ -1,6 +1,8 @@
 //! VirtAddr Abstraction
 
 use super::PageTableEntry;
+#[cfg(feature = "cvitex")]
+use crate::boards::{PHYSICAL_MEM_BEGIN, PHYSICAL_MEM_END};
 use crate::consts::PAGE_SIZE;
 use core::fmt::Debug;
 
@@ -185,6 +187,35 @@ impl PhysPageNum {
     pub fn as_ref<T>(&self) -> &'static T {
         let pa: PhysAddr = (*self).into();
         unsafe { (pa.0 as *const T).as_ref().unwrap() }
+    }
+}
+
+#[cfg(feature = "cvitex")]
+pub struct PPNRange {
+    start: usize,
+    end: usize,
+}
+
+#[cfg(feature = "cvitex")]
+pub static MEMORY_RANGE: PPNRange = PPNRange {
+    start: PHYSICAL_MEM_BEGIN / PAGE_SIZE,
+    end: PHYSICAL_MEM_END / PAGE_SIZE,
+};
+
+#[cfg(feature = "cvitex")]
+impl PhysPageNum {
+    pub fn in_memory(&self) -> bool {
+        MEMORY_RANGE.start <= self.0 && self.0 < MEMORY_RANGE.end
+    }
+
+    pub fn in_device(&self) -> bool {
+        if self.in_memory() {
+            return false;
+        }
+        use crate::boards::MMIO;
+        let mmio = MMIO.lock();
+        mmio.iter()
+            .any(|region| region.start <= self.0 && self.0 < region.end)
     }
 }
 

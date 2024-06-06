@@ -4,17 +4,16 @@ use riscv::register::sstatus;
 
 pub const CLOCK_FREQ: usize = 25000000;
 pub const PHYSICAL_MEM_END: usize = 0x8fe0_0000; // 0x8000_0000 + 127MB
+pub const PHYSICAL_MEM_BEGIN: usize = 0x8000_0000;
 
 pub static DEVICE_TREE: &[u8] = include_bytes!("cv1812h.dtb");
 
-pub fn init_device(hartid: usize, _device_tree: usize) -> (usize, usize) {
-    // 开启SUM位 让内核可以访问用户空间  踩坑：
-    // only in qemu. eg: qemu is riscv 1.10  NOTE: k210 is riscv 1.9.1
-    // in 1.10 is SUM but in 1.9.1 is PUM which is the opposite meaning with SUM
+pub fn init_device() -> usize {
+    // 开启SUM位 让内核可以访问用户空间
     unsafe {
         sstatus::set_sum();
     }
-    (hartid, DEVICE_TREE.as_ptr() as usize)
+    DEVICE_TREE.as_ptr() as usize
 }
 
 #[derive(Debug, Clone, Copy)]

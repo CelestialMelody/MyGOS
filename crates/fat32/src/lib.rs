@@ -6,7 +6,6 @@ pub mod dir;
 pub mod entry;
 pub mod fat;
 pub mod fs;
-pub mod print;
 pub mod vf;
 
 use alloc::string::String;

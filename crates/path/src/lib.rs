@@ -168,25 +168,32 @@ impl Debug for AbsolutePath {
     }
 }
 
-// #[allow(unused)]
-// pub fn path_test() {
-//     let path = AbsolutePath::from_string(String::from("/a/b/c/d/"));
-//     println!("path = {:?}", path);
-//     let path = AbsolutePath::from_string(String::from("/abcdefg/asdsd/asdasd"));
-//     println!("path = {:?}", path);
-//     let path = AbsolutePath::from_string(String::from("aa/../bb/../cc/././."));
-//     println!("path = {:?}", path);
-//     let path = AbsolutePath::from_string(String::from("aa/../.."));
-//     println!("path = {:?}", path);
-//     let path = AbsolutePath::from_string(String::from("./././."));
-//     println!("path = {:?}", path);
-//     // test cd
-//     let abs_path = AbsolutePath::from_string(String::from("/a/b/c/d/"));
-//     let path = String::from("../e/../f/g");
-//     let new_path = abs_path.cd(path).unwrap();
-//     println!("new_path = {:?}", new_path);
-//     // test join
-//     let abs_path = AbsolutePath::from_string(String::from("/a/b/c/d/"));
-//     let new_path = abs_path.join_string(String::from("../e/../f/g"));
-//     println!("new_path = {:?}", new_path);
-// }
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_path() {
+        let path = AbsolutePath::from_string(String::from("/a/b/c/d/"));
+        assert_eq!(format!("{:?}", path), "/a/b/c/d/");
+        let path = AbsolutePath::from_string(String::from("/abcdefg/asdsd/asdasd"));
+        assert_eq!(format!("{:?}", path), "/abcdefg/asdsd/asdasd");
+        let path = AbsolutePath::from_string(String::from("aa/../bb/../cc/././."));
+        assert_eq!(format!("{:?}", path), "/cc");
+        let path = AbsolutePath::from_string(String::from("aa/../.."));
+        assert_eq!(format!("{:?}", path), "/");
+        let path = AbsolutePath::from_string(String::from("./././."));
+        assert_eq!(format!("{:?}", path), "/");
+
+        // test cd
+        let abs_path = AbsolutePath::from_string(String::from("/a/b/c/d/"));
+        let path = String::from("../e/../f/g");
+        let new_path = abs_path.cd(path);
+        assert_eq!(format!("{:?}", new_path), "/a/b/c/f/g");
+
+        // test join
+        let abs_path = AbsolutePath::from_string(String::from("/a/b/c/d/"));
+        let new_path = abs_path.cd(String::from("../e/../f/g"));
+        assert_eq!(format!("{:?}", new_path), "/a/b/c/f/g");
+    }
+}

@@ -15,13 +15,13 @@ NCPU = 2
 
 RUST_LOG := trace
 
-# Available features: no-page-cache,static-busybox,inode-drop,fu740,dev,hash-inode-cache,multi-harts
+# Available features: no-page-cache,static-busybox,inode-drop,dev,hash-inode-cache,multi-harts
 FEATURES ?= --features static-busybox
 
 DEV ?= false
 
-# BOARD ?= qemu
-BOARD ?= cv181xx
+BOARD ?= qemu
+# BOARD ?= cv1812h
 
 define run-board-qemu
 	@$(QEMU) \
@@ -36,17 +36,8 @@ define run-board-qemu
 		-device virtio-net-device,netdev=net \
 		-netdev user,id=net
 endef
-define run-board-fu740
-	@$(QEMU) \
-		-machine virt \
-		-kernel $(KERNEL_ELF) \
-		-m 2G \
-		-nographic \
-		-smp 4 \
-		-drive file=sdcard.img,if=none,format=raw,id=x0 \
-		-device virtio-blk-device,drive=x0,bus=virtio-mmio-bus.0
-endef
-define run-board-cv181xx
+define run-board-cv1812h
+	# rust-objdump -all $(KERNEL_ELF) > kernel.asm
 	rust-objcopy --binary-architecture=riscv64 $(KERNEL_ELF) --strip-all -O binary os.bin
 endef
 
@@ -60,20 +51,20 @@ sdcard:
 	@cp $(SDCARD_BAK) $(SDCARD)
 
 kernel: initproc
-	# @cargo build --release --features $(BOARD) --offline
+#   @cargo build --release --features $(BOARD) --offline
 	@cargo build --release --features $(BOARD)
 
 kernel-dev: initproc
 ifeq ($(DEV), true)
-	# @RUST_LOG=$(RUST_LOG) cargo build --release --offline $(FEATURES)
+#   @RUST_LOG=$(RUST_LOG) cargo build --release --offline $(FEATURES)
 	@RUST_LOG=$(RUST_LOG) cargo build --release $(FEATURES)
 else
-	# @RUST_LOG=error cargo build --release --offline $(FEATURES)
-	@RUST_LOG=error cargo build --release $(FEATURES)
+#   @RUST_LOG=error cargo build --release --offline $(FEATURES)
+	@RUST_LOG=debug cargo build --release $(FEATURES)
 endif
 
-board-cv181xx: kernel-dev
-	@$(run-board-cv181xx)
+cv1812h: kernel-dev
+	@$(run-board-cv1812h)
 
 qemu: kernel-dev
 	@$(run-board-qemu)
@@ -81,8 +72,6 @@ qemu: kernel-dev
 run: kernel-dev sdcard
 ifeq ($(BOARD), qemu)
 	@$(run-board-qemu)
-else ifeq ($(BOARD), fu740)
-	@$(run-board-fu740)
 else ifeq ($(BOARD), cv181xx)
 	@$(run-board-cv181xx)
 else

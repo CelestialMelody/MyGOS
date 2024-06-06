@@ -47,10 +47,11 @@ use alloc::{
     sync::Arc,
     vec::Vec,
 };
-// use fat32::{root, Dir as FatDir, DirError, FileSystem, VirtFile, VirtFileType, ATTR_DIRECTORY};
-use crate::fat32::{
-    root, Dir as FatDir, DirError, FileSystem, VirtFile, VirtFileType, ATTR_DIRECTORY,
-};
+use fat32::{root, Dir as FatDir, DirError, FileSystem, VirtFile, VirtFileType, ATTR_DIRECTORY};
+// use crate::fat32::{
+// root, Dir as FatDir, DirError, FileSystem, VirtFile, VirtFileType, ATTR_DIRECTORY,
+// };
+
 use nix::{Dirent, InodeTime, Kstat, S_IFCHR, S_IFDIR, S_IFREG};
 use path::AbsolutePath;
 use spin::lazy::Lazy;
@@ -154,35 +155,12 @@ pub struct Inode {
 }
 
 #[cfg(feature = "inode-drop")]
-use crate::fs::DataState;
-#[cfg(feature = "inode-drop")]
-use fat32::BLOCK_SIZE;
-#[cfg(feature = "inode-drop")]
 impl Drop for Inode {
     // Actually, all the tests create files in memory, read and write files,
     // and do not need to be written back to the file system.
+    // TODO 实现 ramfs 将 page cache 转移到 ramfs
     fn drop(&mut self) {
-        let mut page_set: Vec<Arc<FilePage>> = Vec::new();
-        let pages = &self.page_cache.lock().as_ref().cloned().unwrap().pages;
-        for (_, page) in pages.read().iter() {
-            page_set.push(page.clone());
-        }
-        for page in page_set {
-            let file_info = page.file_info.as_ref().unwrap().lock();
-            for idx in 0..PAGE_SIZE / BLOCK_SIZE {
-                match file_info.data_states[idx] {
-                    DataState::Dirty => {
-                        let page_offset = idx * BLOCK_SIZE;
-                        let file_offset = file_info.file_offset + page_offset;
-                        let data = page.data_frame.ppn.as_bytes_array()
-                            [page_offset..page_offset + BLOCK_SIZE]
-                            .to_vec();
-                        self.file.lock().write_at(file_offset, &data);
-                    }
-                    _ => {}
-                }
-            }
-        }
+        self.page_cache.lock().as_mut().unwrap().sync().unwrap();
     }
 }
 
@@ -335,25 +313,20 @@ impl KFile {
 //     };
 // }
 
-// pub static FILE_SYSTEM: Lazy<FileSystem> = Lazy::new(|| FileSystem::open(BLOCK_DEVICE.clone()));
+pub static FILE_SYSTEM: Lazy<Arc<RwLock<FileSystem>>> = Lazy::new(|| {
+    let blk = BLOCK_DEVICE.clone();
+    FileSystem::open(blk)
+});
 
 pub static ROOT_INODE: Lazy<Arc<VirtFile>> = Lazy::new(|| {
-    println!("ROOT_INODE test 0");
-    let fs = FileSystem::open(BLOCK_DEVICE.clone());
-    println!("ROOT_INODE test 0.1");
-    Arc::new(root(fs.clone()))
+    let fs = FILE_SYSTEM.clone();
+    Arc::new(root(fs))
 });
 
 pub fn list_apps(path: AbsolutePath) {
     let layer: usize = 0;
-
-    println!("list_apps test 0.1");
-
     fn ls(path: AbsolutePath, layer: usize) {
-        println!("list_apps test 0.2");
         let dir = ROOT_INODE.find(path.as_vec_str()).unwrap();
-
-        println!("list_apps test 0.3");
         println!("dir name: {:?}", dir.name());
 
         for app in dir.ls_with_attr().unwrap() {
@@ -365,7 +338,7 @@ pub fn list_apps(path: AbsolutePath) {
             if app.1 & ATTR_DIRECTORY == 0 {
                 // if it is not directory
                 for _ in 0..layer {
-                    print!("    ");
+                    crate::print!("    ");
                 }
                 crate::println!("{}", app.0);
             } else if app.0 != "." && app.0 != ".." {
@@ -388,11 +361,11 @@ pub fn open(path: AbsolutePath, flags: OpenFlags, _mode: CreateMode) -> Result<A
     let (readable, writable) = flags.read_write();
     let mut pathv = path.as_vec_str();
 
-    println!("open test 0.1");
+    // println!("open test 0.1");
 
     #[cfg(not(feature = "no-page-cache"))]
     if let Some(inode) = INODE_CACHE.get(&path) {
-        println!("open test 0.1.1");
+        // println!("open test 0.1.1");
         let name = if let Some(name_) = pathv.last() {
             name_.to_string()
         } else {
@@ -406,26 +379,26 @@ pub fn open(path: AbsolutePath, flags: OpenFlags, _mode: CreateMode) -> Result<A
             name,
         ));
 
-        println!("open test 0.1.2");
+        // println!("open test 0.1.2");
 
         res.create_page_cache_if_needed();
 
-        println!("open test 0.1.3");
+        // println!("open test 0.1.3");
 
         return Ok(res);
     }
 
-    println!("open test 0.2");
+    // println!("open test 0.2");
 
     if flags.contains(OpenFlags::O_CREATE) {
         // Create File
         let res = ROOT_INODE.find(pathv.clone());
 
-        println!("open test 0.3");
+        // println!("open test 0.3");
 
         match res {
             Ok(file) => {
-                println!("open test 0.4");
+                // println!("open test 0.4");
 
                 let name = if let Some(name_) = pathv.pop() {
                     name_
@@ -456,22 +429,22 @@ pub fn open(path: AbsolutePath, flags: OpenFlags, _mode: CreateMode) -> Result<A
                     name.to_string(),
                 ));
 
-                println!("open test 0.5");
+                // println!("open test 0.5");
 
                 // create page cache
                 #[cfg(not(feature = "no-page-cache"))]
                 res.create_page_cache_if_needed();
 
-                println!("open test 0.6");
+                // println!("open test 0.6");
 
                 #[cfg(not(feature = "no-page-cache"))]
                 INODE_CACHE.insert(path.clone(), inode.clone());
 
-                println!("open test 0.7");
+                // println!("open test 0.7");
                 Ok(res)
             }
             Err(_err) => {
-                println!("open test 0.8");
+                // println!("open test 0.8");
 
                 if _err == DirError::NotDir {
                     return Err(Errno::ENOTDIR);
@@ -484,13 +457,13 @@ pub fn open(path: AbsolutePath, flags: OpenFlags, _mode: CreateMode) -> Result<A
                 // to find parent
                 let name = pathv.pop().unwrap();
 
-                println!("open test 0.9");
+                // println!("open test 0.9");
 
                 match ROOT_INODE.find(pathv.clone()) {
                     // find parent to create file
                     Ok(parent) => match parent.create(name, create_type as VirtFileType) {
                         Ok(file) => {
-                            println!("open test 0.10");
+                            // println!("open test 0.10");
 
                             let fid = ino_alloc();
                             #[cfg(not(feature = "no-page-cache"))]
@@ -532,7 +505,7 @@ pub fn open(path: AbsolutePath, flags: OpenFlags, _mode: CreateMode) -> Result<A
         // Open File
         match ROOT_INODE.find(pathv.clone()) {
             Ok(file) => {
-                println!("open test 0.11");
+                // println!("open test 0.11");
 
                 // clear file if O_TRUNC
                 if flags.contains(OpenFlags::O_TRUNC) {

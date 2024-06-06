@@ -79,7 +79,7 @@ impl VmArea {
             MapType::Identical => {
                 self.vpn_range.into_iter().for_each(|vpn| {
                     let ppn = PhysPageNum(vpn.0);
-                    let flags = PTEFlags::from_bits(self.permission.bits()).unwrap();
+                    let flags = PTEFlags::from_map_permission(self.permission);
                     page_table.map(vpn, ppn, flags);
                 });
             }
@@ -91,7 +91,8 @@ impl VmArea {
                         panic!("vm area overlap");
                     }
                     self.frame_map.insert(vpn, frame);
-                    let flags = PTEFlags::from_bits(self.permission.bits()).unwrap(); // TODO premission and flags 统一
+                    let flags = PTEFlags::from_map_permission(self.permission);
+                    // TODO premission and flags 统一
                     page_table.map(vpn, ppn, flags);
                 });
             }
@@ -137,6 +138,13 @@ impl VmArea {
     /// which the incoming logical segment belongs.
     pub fn erase_pagetable(&mut self, page_table: &mut PageTable) {
         for vpn in self.vpn_range {
+            match self.map_type {
+                MapType::Framed => {
+                    // NOTICE: We should remove the frame from the frame allocator
+                    self.frame_map.remove(&vpn);
+                }
+                _ => {}
+            }
             page_table.unmap(vpn);
         }
     }
@@ -193,7 +201,8 @@ impl VmArea {
                 }
             }
         }
-        let pte_flags = PTEFlags::from_bits(self.permission.bits()).unwrap();
+        // let pte_flags = PTEFlags::from_bits(self.permission.bits()).unwrap();
+        let pte_flags = PTEFlags::from_map_permission(self.permission);
         page_table.map(vpn, ppn, pte_flags);
     }
 }

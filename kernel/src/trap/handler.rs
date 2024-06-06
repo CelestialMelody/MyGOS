@@ -11,6 +11,7 @@ use crate::{
     timer::{check_interval_timer, get_timeval, set_next_trigger},
 };
 use nix::SigSet;
+use riscv::register::{mcause, mtval};
 use riscv::register::{
     scause::{self, Exception, Interrupt, Trap},
     stval,
@@ -109,5 +110,26 @@ pub fn user_trap_handler() -> ! {
 
 #[no_mangle]
 pub fn kernel_trap_handler() -> ! {
+    let scause = scause::read();
+    let stval = stval::read();
+    let sepc = riscv::register::sepc::read();
+    let mcause = mcause::read();
+    let mtval = mtval::read();
+    let mepc = riscv::register::mepc::read();
+    println!(
+        "[kernel_trap_handler] scause: {:x} {:?}, stval: {:x}, sepc: {:x}",
+        scause.bits(),
+        scause.cause(),
+        stval,
+        sepc
+    );
+    println!(
+        "[kernel_trap_handler] mcause: {:x} {:?}, mtval: {:x}, mepc: {:x}",
+        mcause.bits(),
+        mcause.cause(),
+        mtval,
+        mepc
+    );
+
     panic!("hart {} nested trap!", hartid!());
 }

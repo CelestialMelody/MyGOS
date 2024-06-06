@@ -23,19 +23,19 @@ use nix::{
 
 pub struct MemorySet {
     pub page_table: PageTable,
-
     pub map_areas: Vec<VmArea>,
-
+    // 用于处理 mmap
     pub mmap_manager: MmapManager,
+    // 用于处理 heap
     pub heap_areas: VmArea,
-
+    // 用于处理 shm
     pub shm_areas: Vec<VmArea>,
-
     pub shm_trackers: BTreeMap<VirtAddr, SharedMemoryTracker>,
     pub shm_top: usize,
-
+    // 用于处理 brk
     pub brk_start: usize,
     pub brk: usize,
+    // 用于处理用户栈
     pub user_stack_areas: VmArea,
     pub user_stack_start: usize,
     pub user_stack_end: usize,
@@ -87,7 +87,7 @@ impl MemorySet {
         permission: MapPermission,
         area_tpye: VmAreaType,
     ) {
-        self.insert(
+        self.insert_and_map(
             VmArea::new(
                 start_va,
                 end_va,
@@ -121,7 +121,7 @@ impl MemorySet {
     /// - If the mapping is done in the Framed mode to physical memory,
     ///   it is optional to write some initialization data on the mapped physical page frames.
     /// - data: (osinode, offset, len, page_offset)
-    pub fn insert(&mut self, mut map_area: VmArea, data: Option<(usize, usize, usize)>) {
+    pub fn insert_and_map(&mut self, mut map_area: VmArea, data: Option<(usize, usize, usize)>) {
         map_area.inflate_pagetable(&mut self.page_table);
         if let Some(data) = data {
             map_area.copy_data(&mut self.page_table, data.0, data.1, data.2);
@@ -147,7 +147,7 @@ impl MemorySet {
         self.page_table.map(
             VirtAddr::from(TRAMPOLINE).into(),
             PhysAddr::from(strampoline as usize).into(),
-            PTEFlags::R | PTEFlags::X | PTEFlags::A | PTEFlags::D,
+            PTEFlags::R | PTEFlags::X,
         );
     }
 
@@ -158,17 +158,19 @@ impl MemorySet {
         self.page_table.map(
             VirtAddr::from(SIGNAL_TRAMPOLINE).into(),
             PhysAddr::from(user_sigreturn as usize).into(),
-            PTEFlags::R | PTEFlags::X | PTEFlags::U | PTEFlags::A | PTEFlags::D,
+            PTEFlags::R | PTEFlags::X | PTEFlags::U,
         );
     }
 
     pub fn map_trap_context(&mut self) {
-        self.insert(
+        self.insert_and_map(
             VmArea::new(
                 TRAP_CONTEXT_BASE.into(),
                 SIGNAL_TRAMPOLINE.into(),
                 MapType::Framed,
                 VmAreaType::TrapContext,
+                // 不包括 U, 虽然 trap context 位于应用地址空间的次高页面, 但仅 S 态的内核可访问
+                // 虽然不在同一地址空间, 内核可通过 Task->MemorySet->PageTable 查询并获取应用的 TrapContext
                 MapPermission::R | MapPermission::W,
                 None,
                 0,
@@ -180,7 +182,7 @@ impl MemorySet {
         assert!(tid > 0 && tid < THREAD_LIMIT);
         let start_va = trap_context_position(tid);
         let end_va = VirtAddr::from(start_va.0 + PAGE_SIZE);
-        self.insert(
+        self.insert_and_map(
             VmArea::new(
                 start_va,
                 end_va,
@@ -262,7 +264,7 @@ impl MemorySet {
                         start_va.page_offset(),
                     );
                     brk_start_va = end_va;
-                    memory_set.insert(
+                    memory_set.insert_and_map(
                         map_area,
                         Some((
                             ph.offset() as usize,
@@ -318,7 +320,7 @@ impl MemorySet {
                         Some(interpreter_file.clone()),
                         0,
                     );
-                    memory_set.insert(
+                    memory_set.insert_and_map(
                         map_area,
                         Some((
                             ph.offset() as usize,
@@ -421,8 +423,9 @@ impl MemorySet {
         for area in parent_areas.iter() {
             match area.area_type {
                 VmAreaType::TrapContext => {
-                    let new_area = VmArea::from_another(area);
-                    new_memory_set.insert(new_area, None);
+                    // 对于 TrapContext, 不采用 COW, 直接复制
+                    let mut new_area = VmArea::from_another(area);
+                    new_memory_set.insert_and_map(new_area, None);
                     for vpn in area.vpn_range {
                         let src_ppn = parent_page_table.translate(vpn).unwrap().ppn();
                         let dst_ppn = new_memory_set.translate(vpn).unwrap().ppn();
@@ -430,6 +433,11 @@ impl MemorySet {
                         dst_ppn
                             .as_bytes_array()
                             .copy_from_slice(src_ppn.as_bytes_array());
+
+                        // TODO 在 insert_and_map 中已经添加过
+                        // new_area
+                        //     .frame_map
+                        //     .insert(vpn, FrameTracker::from_ppn(dst_ppn));
                     }
                 }
                 VmAreaType::UserStack | VmAreaType::Elf => {
@@ -591,7 +599,7 @@ impl MemorySet {
         if vpn >= VirtPageNum::from(self.mmap_manager.mmap_start)
             && vpn < VirtPageNum::from(self.mmap_manager.mmap_top)
         {
-            self.mmap_manager.frame_trackers.insert(vpn, frame);
+            self.mmap_manager.frame_map.insert(vpn, frame);
             return 0;
         }
         if vpn >= self.user_stack_areas.vpn_range.get_start()
@@ -724,9 +732,10 @@ impl MemorySet {
     pub fn lazy_mmap(&mut self, vpn: VirtPageNum) {
         if let Some(frame) = alloc_frame() {
             let ppn = frame.ppn;
-            self.mmap_manager.frame_trackers.insert(vpn, frame);
+            self.mmap_manager.frame_map.insert(vpn, frame);
             let mmap_page = self.mmap_manager.mmap_map.get_mut(&vpn).unwrap();
-            let pte_flags = PTEFlags::from_bits((mmap_page.prot.bits() << 1 & 0xf) as u64).unwrap(); // TODO
+            // let pte_flags = PTEFlags::from_bits((mmap_page.prot.bits() << 1 & 0xf) as u64).unwrap(); // TODO
+            let pte_flags = PTEFlags::from_map_ports(mmap_page.prot);
             let pte_flags = pte_flags | PTEFlags::U;
             self.page_table.map(vpn, ppn, pte_flags);
             mmap_page.lazy_map_page(self.page_table.token());
