@@ -235,6 +235,10 @@ impl PTEFlags {
             flags |= PTEFlags::U;
         }
         #[cfg(feature = "cvitex")]
+        if permission.contains(MapPermission::G) {
+            flags |= PTEFlags::G;
+        }
+        #[cfg(feature = "cvitex")]
         if flags.contains(PTEFlags::R) | flags.contains(PTEFlags::X) {
             flags = flags.union(PTEFlags::A)
         }
@@ -319,11 +323,11 @@ impl PageTableEntry {
         let mut flags = PTEFlags::from_bits((self.bits & PTEFLAGS_MASK) as u64).unwrap();
         #[cfg(feature = "cvitex")]
         if flags.contains(PTEFlags::R) | flags.contains(PTEFlags::X) {
-            flags.union(PTEFlags::A)
+            flags = flags.union(PTEFlags::A)
         }
         #[cfg(feature = "cvitex")]
         if flags.contains(PTEFlags::W) {
-            flags.union(PTEFlags::D)
+            flags = flags.union(PTEFlags::D)
         }
         flags
     }
