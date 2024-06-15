@@ -9,7 +9,9 @@ test = false
 bench = false
 
 [features]
-default = ["static-busybox", "qemu"]
+default = ["static-busybox", "qemu", "fat32"]
+# default = ["static-busybox", "qemu", "ramfs"]
+# default = ["static-busybox", "cvitex", "ramfs"]
 qemu = []
 cvitex = []
 dev = []
@@ -19,6 +21,8 @@ no-page-cache = []
 inode-drop = []
 time-tracer = []
 hash-inode-cache = []
+fat32 = []
+ramfs = []
 
 [dependencies]
 lazy_static = { version = "1.4.0", features = ["spin_no_std"] }
@@ -43,5 +47,5 @@ path = { path = "../crates/path" }
 time_tracer = { path = "../crates/time_tracer" }
 simple-sync = { path = "../crates/simple-sync" }
 fat32 = { path = "../crates/fat32" }
-# cv1811h-sd = { path = "../crates/cv1811h-sd" }
+cv1811h-sd = { path = "../crates/cv1811h-sd" }
 

@@ -72,8 +72,8 @@ qemu: kernel-dev
 run: kernel-dev sdcard
 ifeq ($(BOARD), qemu)
 	@$(run-board-qemu)
-else ifeq ($(BOARD), cv181xx)
-	@$(run-board-cv181xx)
+else ifeq ($(BOARD), cv1812h)
+	@$(run-board-cv1812h)
 else
 	@$(error "Platform not supported (required $(BOARD))")
 endif
