@@ -31,6 +31,61 @@ bitflags! {
     }
 }
 
+bitflags! {
+    #[derive(Debug)]
+    pub struct StatMode: u32 {
+        const NULL  = 0;
+        /// Type
+        const TYPE_MASK = 0o170000;
+        /// FIFO
+        const FIFO  = 0o010000;
+        /// character device
+        const CHAR  = 0o020000;
+        /// directory
+        const DIR   = 0o040000;
+        /// block device
+        const BLOCK = 0o060000;
+        /// ordinary regular file
+        const FILE  = 0o100000;
+        /// symbolic link
+        const LINK  = 0o120000;
+        /// socket
+        const SOCKET = 0o140000;
+
+        /// Set-user-ID on execution.
+        const SET_UID = 0o4000;
+        /// Set-group-ID on execution.
+        const SET_GID = 0o2000;
+
+        /// Read, write, execute/search by owner.
+        const OWNER_MASK = 0o700;
+        /// Read permission, owner.
+        const OWNER_READ = 0o400;
+        /// Write permission, owner.
+        const OWNER_WRITE = 0o200;
+        /// Execute/search permission, owner.
+        const OWNER_EXEC = 0o100;
+
+        /// Read, write, execute/search by group.
+        const GROUP_MASK = 0o70;
+        /// Read permission, group.
+        const GROUP_READ = 0o40;
+        /// Write permission, group.
+        const GROUP_WRITE = 0o20;
+        /// Execute/search permission, group.
+        const GROUP_EXEC = 0o10;
+
+        /// Read, write, execute/search by others.
+        const OTHER_MASK = 0o7;
+        /// Read permission, others.
+        const OTHER_READ = 0o4;
+        /// Write permission, others.
+        const OTHER_WRITE = 0o2;
+        /// Execute/search permission, others.
+        const OTHER_EXEC = 0o1;
+    }
+}
+
 pub const UTIME_NOW: u64 = 0x3fffffff;
 pub const UTIME_OMIT: u64 = 0x3ffffffe;
 
@@ -88,11 +143,11 @@ pub const NAME_LIMIT: usize = 64;
 #[repr(C)]
 #[derive(Debug)]
 pub struct Dirent {
-    d_ino: usize,             // inode number
-    d_off: isize,             // offset from 0 to next dirent
-    d_reclen: u16,            // length of this dirent
-    d_type: u8,               // file type
-    d_name: [u8; NAME_LIMIT], // file name (null-terminated)
+    pub d_ino: usize,             // inode number
+    pub d_off: isize,             // offset from 0 to next dirent
+    pub d_reclen: u16,            // length of this dirent
+    pub d_type: u8,               // file type
+    pub d_name: [u8; NAME_LIMIT], // file name (null-terminated)
 }
 impl Dirent {
     pub fn new() -> Self {
@@ -126,19 +181,48 @@ impl Dirent {
 bitflags! {
     #[derive(Debug, Clone, Copy)]
     pub struct OpenFlags: u32 {
-        // TODO do not use 0
-        const O_RDONLY    = 0;
-        const O_WRONLY    = 1 << 0;
-        const O_RDWR      = 1 << 1;
-        const O_CREATE    = 1 << 6;
-        const O_EXCL      = 1 << 7;
-        const O_TRUNC     = 1 << 9;
-        const O_APPEND    = 1 << 10;
-        const O_NONBLOCK  = 1 << 11;
-        const O_LARGEFILE = 1 << 15;
-        const O_DIRECTROY = 1 << 16;
-        const O_NOFOLLOW  = 1 << 17;
-        const O_CLOEXEC   = 1 << 19;
+        // 来源不明
+        // const O_RDONLY    = 0;
+        // const O_WRONLY    = 1 << 0;
+        // const O_RDWR      = 1 << 1;
+        // const O_CREATE    = 1 << 6;
+        // const O_EXCL      = 1 << 7;
+        // const O_TRUNC     = 1 << 9;
+        // const O_APPEND    = 1 << 10;
+        // const O_NONBLOCK  = 1 << 11;
+        // const O_LARGEFILE = 1 << 15;
+        // const O_DIRECTORY = 1 << 16;
+        // const O_NOFOLLOW  = 1 << 17;
+        // const O_CLOEXEC   = 1 << 19;
+        // 来源不明
+        const O_ACCMODE =  0x0007;
+        const O_EXEC    =  1;
+        const O_RDONLY  =  2;
+        const O_RDWR    =  3;
+        const O_SEARCH  =  4;
+        const O_WRONLY  =  5;
+
+        // https://github.com/riscvarchive/riscv-musl/blob/staging/arch/riscv64/bits/fcntl.h
+        const O_CREAT       =  0o100;
+        const O_EXCL        =  0o200;
+        const O_NOCTTY      =  0o400;
+        const O_TRUNC       =  0o1000;
+        const O_APPEND      =  0o2000;
+        const O_NONBLOCK    =  0o4000;
+        const O_DSYNC       =  0o10000;
+        const O_SYNC        =  0o4010000;
+        const O_RSYNC       =  0o4010000;
+        const O_DIRECTORY   =  0o200000;
+        const O_NOFOLLOW    =  0o400000;
+        const O_CLOEXEC     =  0o2000000;
+
+        const O_ASYNC       =  0o20000;
+        const O_DIRECT      =  0o40000;
+        const O_LARGEFILE   =  0o100000;
+        const NOATIME     =  0o1000000;
+        const PATH        =  0o10000000;
+        const TMPFILE     =  0o20200000;
+        const NDELAY      =  Self::O_NONBLOCK.bits();
     }
 
     /// User group read and write permissions
@@ -165,6 +249,7 @@ bitflags! {
     }
 }
 impl OpenFlags {
+    // TODO
     pub fn read_write(&self) -> (bool, bool) {
         if self.is_empty() {
             (true, false)
@@ -361,25 +446,25 @@ pub const S_IFSOCK: u32 = 0o0140000;
 #[repr(C)]
 #[derive(Debug)]
 pub struct Kstat {
-    st_dev: u64,     // 包含文件的设备 ID
-    pub st_ino: u64, // 索引节点号
-    st_mode: u32,    // 文件类型和模式
-    st_nlink: u32,   // 硬链接数
-    st_uid: u32,     // 所有者的用户 ID
-    st_gid: u32,     // 所有者的组 ID
-    st_rdev: u64,    // 设备 ID(如果是特殊文件)
-    __pad: u64,
-    st_size: i64,    // 总大小, 以字节为单位
-    st_blksize: i32, // 文件系统 I/O 的块大小
-    __pad2: i32,
-    st_blocks: u64,     // 分配的 512B 块数
-    st_atime_sec: i64,  // 上次访问时间
-    st_atime_nsec: i64, // 上次访问时间(纳秒精度)
-    st_mtime_sec: i64,  // 上次修改时间
-    st_mtime_nsec: i64, // 上次修改时间(纳秒精度)
-    st_ctime_sec: i64,  // 上次状态变化的时间
-    st_ctime_nsec: i64, // 上次状态变化的时间(纳秒精度)
-    __unused: [u32; 2],
+    pub st_dev: u64,   // 包含文件的设备 ID
+    pub st_ino: u64,   // 索引节点号
+    pub st_mode: u32,  // 文件类型和模式
+    pub st_nlink: u32, // 硬链接数
+    pub st_uid: u32,   // 所有者的用户 ID
+    pub st_gid: u32,   // 所有者的组 ID
+    pub st_rdev: u64,  // 设备 ID(如果是特殊文件)
+    pub __pad: u64,
+    pub st_size: i64,    // 总大小, 以字节为单位
+    pub st_blksize: i32, // 文件系统 I/O 的块大小
+    pub __pad2: i32,
+    pub st_blocks: u64,     // 分配的 512B 块数
+    pub st_atime_sec: i64,  // 上次访问时间
+    pub st_atime_nsec: i64, // 上次访问时间(纳秒精度)
+    pub st_mtime_sec: i64,  // 上次修改时间
+    pub st_mtime_nsec: i64, // 上次修改时间(纳秒精度)
+    pub st_ctime_sec: i64,  // 上次状态变化的时间
+    pub st_ctime_nsec: i64, // 上次状态变化的时间(纳秒精度)
+    pub __unused: [u32; 2],
 }
 
 impl Kstat {
