@@ -200,7 +200,7 @@ impl MemorySet {
         #[cfg(feature = "static-busybox")]
         {
             const BB: &str = "BUSYBOX";
-            if elf_file.name() == BB {
+            if &elf_file.name() == BB {
                 return hijack_busybox_load_elf();
             }
         }

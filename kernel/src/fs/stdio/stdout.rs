@@ -1,4 +1,7 @@
-use alloc::vec::Vec;
+use alloc::{
+    string::{String, ToString},
+    vec::Vec,
+};
 use nix::Kstat;
 
 use crate::{fs::file::File, mm::UserBuffer};
@@ -25,8 +28,8 @@ impl File for Stdout {
         user_buf.len()
     }
 
-    fn name(&self) -> &str {
-        "Stdout"
+    fn name(&self) -> String {
+        "Stdout".to_string()
     }
 
     fn write_from_kspace(&self, data: &Vec<u8>) -> usize {

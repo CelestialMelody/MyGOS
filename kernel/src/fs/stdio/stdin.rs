@@ -1,3 +1,5 @@
+use alloc::string::{String, ToString};
+
 use crate::fs::file::File;
 use crate::mm::UserBuffer;
 use crate::sbi::console_getchar;
@@ -38,8 +40,8 @@ impl File for Stdin {
         panic!("Cannot write to stdin!");
     }
 
-    fn name(&self) -> &str {
-        "Stdin"
+    fn name(&self) -> String {
+        "Stdin".to_string()
     }
 
     fn offset(&self) -> usize {

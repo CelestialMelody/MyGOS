@@ -151,7 +151,7 @@ impl TaskControlBlock {
         } = MemorySet::load_elf(elf.clone());
 
         #[cfg(feature = "static-busybox")]
-        if elf.name() == "static-busybox" {
+        if &elf.name() == "static-busybox" {
             save_busybox_related(entry_point, auxs.clone());
         }
 

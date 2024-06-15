@@ -1,6 +1,7 @@
 use super::file::File;
 use crate::{mm::UserBuffer, task::suspend_current_and_run_next};
 use alloc::{
+    string::{String, ToString},
     sync::{Arc, Weak},
     vec::Vec,
 };
@@ -187,8 +188,8 @@ impl File for Pipe {
             }
         }
     }
-    fn name(&self) -> &str {
-        "pipe"
+    fn name(&self) -> String {
+        "pipe".to_string()
     }
     fn offset(&self) -> usize {
         return 0;
