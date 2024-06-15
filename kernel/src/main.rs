@@ -5,19 +5,19 @@
 #![feature(alloc_error_handler)]
 #![feature(slice_from_ptr_range)]
 #![feature(error_in_core)]
+#![feature(drain_filter)]
 #![allow(unused)]
 #![allow(dead_code)]
 
 #[macro_use]
 extern crate alloc;
-
 #[macro_use]
 extern crate bitflags;
-#[macro_use]
-extern crate lazy_static;
+// TODO 测试硬件是否能使用 lazy_static
+// #[macro_use]
+// extern crate lazy_static;
 #[macro_use]
 extern crate log;
-
 #[cfg(feature = "time-tracer")]
 #[macro_use]
 extern crate time_tracer;
@@ -40,20 +40,12 @@ mod task;
 mod timer;
 mod trap;
 
-use fat32::device;
-// mod fat32;
-
 use crate::{
     drivers::{cvitex::init_blk_driver, BLOCK_DEVICE},
     mm::KERNEL_VMM,
 };
-use alloc::sync::Arc; // Arc
-
-use sbi::sbi_start_hart;
-use spin::lazy::Lazy;
-
-use crate::consts::NCPU;
-use core::{arch::global_asm, slice, sync::atomic::AtomicBool};
+use core::{arch::global_asm, slice};
+use riscv::register::sstatus;
 
 global_asm!(include_str!("entry.S"));
 
@@ -65,10 +57,6 @@ const BANNER: &str = r#"
 /_/  /_/   /_/\____/\____//____/
 
 "#;
-
-static BOOTED: Lazy<AtomicBool> = Lazy::new(|| AtomicBool::new(false));
-
-use riscv::register::sstatus;
 
 #[no_mangle]
 extern "C" fn main(hartid: usize, device_tree: usize) -> ! {
@@ -83,16 +71,14 @@ extern "C" fn main(hartid: usize, device_tree: usize) -> ! {
     unsafe {
         // 开启浮点运算
         sstatus::set_fs(sstatus::FS::Dirty);
-
         kernel_main(hartid, device_tree);
     }
 }
 
-// use drivers::cvitex::init_blk_driver;
-
 #[no_mangle]
 pub fn kernel_main(hartid: usize, device_tree: usize) -> ! {
     {
+        // TODO 目前做的是单核，似乎cv1812h启动默认在1号核心
         #[cfg(feature = "cvitex")]
         if hartid!() == 0 {
             loop {}
@@ -107,22 +93,15 @@ pub fn kernel_main(hartid: usize, device_tree: usize) -> ! {
     mm::init();
 
     // get devices and init
-    #[cfg(feature = "cvitex")]
-    drivers::prepare_devices(device_tree);
+    // #[cfg(feature = "cvitex")]
+    // drivers::prepare_devices(device_tree);
 
     trap::init();
     trap::enable_stimer_interrupt();
     timer::set_next_trigger();
 
     fs::init();
-    println!("fs init done");
-
     task::add_initproc();
-    println!("initproc added");
-
-    #[cfg(feature = "multi-harts")]
-    // BOOTED.store(true, core::sync::atomic::Ordering::Relaxed);
-    wake_other_harts_hsm();
 
     task::run_tasks();
     unreachable!()
