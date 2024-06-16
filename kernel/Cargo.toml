@@ -9,9 +9,9 @@ test = false
 bench = false
 
 [features]
-# default = ["static-busybox", "qemu", "fat32"
+default = ["static-busybox", "qemu", "fat32"]
 # default = ["static-busybox", "qemu", "ramfs"]
-default = ["static-busybox", "cvitex", "ramfs"]
+# default = ["static-busybox", "cvitex", "ramfs"]
 qemu = []
 cvitex = []
 dev = []
