@@ -1,5 +1,9 @@
 # MyGOS
 
+<div align="center">
+  <img width = "50%" img src="docs/MyGOS/imgs/MyGOS.png" />
+</div>
+
 ### 项目架构
 
 <div align="center">
