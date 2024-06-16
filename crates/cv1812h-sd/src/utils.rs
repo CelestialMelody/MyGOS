@@ -8,7 +8,6 @@ pub fn reg_transfer<T>(offset: usize) -> &'static mut T {
 /// check the sdcard that was inserted
 pub fn check_sd() -> bool {
     let present_state = reg_transfer::<PresentState>(0x24);
-    let addr = unsafe { present_state as *const PresentState as usize };
     let res = present_state.card_inserted().get() == u1!(1);
     res
 }

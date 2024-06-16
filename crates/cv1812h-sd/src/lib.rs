@@ -1,3 +1,5 @@
+#![no_std]
+
 mod consts;
 mod utils;
 
@@ -5,11 +7,9 @@ use core::arch::asm;
 
 use bit_struct::*;
 use consts::*;
-use utils::{mmio_clearbits_32, mmio_clrsetbits_32, mmio_setbits_32, reg_transfer};
-
-use {
-    consts::{PresentState, REG_SDIO0_CLK_PAD_REG},
-    utils::{check_sd, mmio_read_32, mmio_write_32},
+use utils::{
+    check_sd, mmio_clearbits_32, mmio_clrsetbits_32, mmio_read_32, mmio_setbits_32, mmio_write_32,
+    reg_transfer,
 };
 
 extern crate alloc;

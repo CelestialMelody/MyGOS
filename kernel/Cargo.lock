@@ -76,6 +76,14 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7059fff8937831a9ae6f0fe4d658ffabf58f2ca96aa9dec1c889f936f705f216"
 
 [[package]]
+name = "cv1812h-sd"
+version = "0.1.0"
+dependencies = [
+ "bit-struct",
+ "log",
+]
+
+[[package]]
 name = "embedded-hal"
 version = "0.2.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -125,6 +133,7 @@ dependencies = [
  "bit-struct",
  "bitflags",
  "buddy_system_allocator",
+ "cv1812h-sd",
  "fat32",
  "fdt",
  "hashbrown",
