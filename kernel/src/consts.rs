@@ -23,4 +23,4 @@ pub const LINK_BASE: usize = 0x2000_0000;
 
 pub const FD_LIMIT: usize = 1024;
 
-pub const NCPU: usize = 2;
+// pub const NCPU: usize = 2;

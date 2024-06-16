@@ -17,12 +17,12 @@ pub struct KernelHeap([u8; KERNEL_HEAP_SIZE]);
 static mut KERNEL_HEAP: KernelHeap = KernelHeap([0; KERNEL_HEAP_SIZE]);
 
 pub fn init_heap() {
-    let heap_addr = unsafe { KERNEL_HEAP.0.as_ptr() as usize };
-    let heap_end = heap_addr + KERNEL_HEAP_SIZE;
-    println!(
-        "[kernel] heap starts at: {:#x}, ends at: {:#x}",
-        heap_addr, heap_end
-    );
+    // let heap_addr = unsafe { KERNEL_HEAP.0.as_ptr() as usize };
+    // let heap_end = heap_addr + KERNEL_HEAP_SIZE;
+    // println!(
+    //     "[kernel] heap starts at: {:#x}, ends at: {:#x}",
+    //     heap_addr, heap_end
+    // );
     unsafe {
         HEAP_ALLOCATOR
             .lock()

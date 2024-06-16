@@ -6,8 +6,8 @@
 #![feature(slice_from_ptr_range)]
 #![feature(error_in_core)]
 #![feature(drain_filter)]
-#![allow(unused)]
 #![allow(dead_code)]
+#![allow(unused)]
 
 #[macro_use]
 extern crate alloc;
@@ -40,10 +40,7 @@ mod task;
 mod timer;
 mod trap;
 
-use crate::{
-    drivers::{cvitex::init_blk_driver, BLOCK_DEVICE},
-    mm::KERNEL_VMM,
-};
+use crate::drivers::BLOCK_DEVICE;
 use core::{arch::global_asm, slice};
 use riscv::register::sstatus;
 
@@ -65,8 +62,6 @@ extern "C" fn main(hartid: usize, device_tree: usize) -> ! {
     // 获取设备树信息
     #[cfg(feature = "cvitex")]
     let device_tree = boards::init_device();
-    #[cfg(feature = "cvitex")]
-    println!("hartid: {}, device_tree_addr: {:#x}", hartid, device_tree);
 
     unsafe {
         // 开启浮点运算
@@ -76,7 +71,7 @@ extern "C" fn main(hartid: usize, device_tree: usize) -> ! {
 }
 
 #[no_mangle]
-pub fn kernel_main(hartid: usize, device_tree: usize) -> ! {
+pub fn kernel_main(_hartid: usize, _device_tree: usize) -> ! {
     {
         // TODO 目前做的是单核，似乎cv1812h启动默认在1号核心
         #[cfg(feature = "cvitex")]
@@ -109,7 +104,7 @@ pub fn kernel_main(hartid: usize, device_tree: usize) -> ! {
 
 fn init_bss() {
     extern "C" {
-        fn ekstack0();
+        // fn ekstack0();
         fn sbss();
         fn ebss();
     }

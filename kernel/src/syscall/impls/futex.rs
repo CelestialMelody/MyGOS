@@ -13,8 +13,7 @@ use crate::return_errno;
 use crate::syscall::errno;
 use crate::syscall::futex::{FutexQueue, FutexWaiter};
 use crate::task::{
-    block_current_and_run_next, block_task, current_task, current_user_token, schedule,
-    unblock_task, TaskContext, TaskStatus,
+    block_task, current_task, current_user_token, schedule, unblock_task, TaskContext, TaskStatus,
 };
 use crate::timer::get_time_ns;
 

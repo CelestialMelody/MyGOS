@@ -8,7 +8,7 @@ use crate::boards::{MMIO, PHYSICAL_MEM_END};
 
 use crate::mm::{
     vm_area::{VmArea, VmAreaType},
-    MapPermission, MapType, MemorySet, VPNRange,
+    MapPermission, MapType, MemorySet,
 };
 
 extern "C" {
@@ -20,52 +20,10 @@ extern "C" {
     fn edata();
     fn sbss();
     fn ebss();
-    fn skstack0();
-    fn ekstack0();
+    // fn skstack0();
+    // fn ekstack0();
     fn ekernel();
 }
-
-// lazy_static! {
-//     // Kernel's virtual memory memory set.
-//     static ref KERNEL_VMM: Arc<Mutex<MemorySet>> = Arc::new(Mutex::new({
-//         let mut memory_set = MemorySet::new_bare();
-//         memory_set.map_trampoline();
-//         macro_rules! insert_kernel_vm_areas {
-//             ($kvmm:ident,$($start:expr, $end:expr, $permission:expr, $file:expr, $page_offset:expr)*) => {
-//                 $(
-//                     $kvmm.insert(
-//                         VmArea::new(
-//                             ($start as usize).into(),
-//                             ($end as usize).into(),
-//                             MapType::Identical,
-//                             VmAreaType::KernelSpace,
-//                             $permission,
-//                             $file,
-//                             $page_offset,
-//                         ),
-//                         None
-//                     );
-//                 )*
-//             };
-//         }
-//         insert_kernel_vm_areas! { memory_set,
-//             stext,   etext,    MapPermission::R | MapPermission::X, None, 0
-//             srodata, erodata,  MapPermission::R, None, 0
-//             sdata,   edata,    MapPermission::R | MapPermission::W, None, 0
-//             sbss,    ebss,     MapPermission::R | MapPermission::W, None, 0
-//             ekernel, PHYSICAL_MEM_END,
-//                 MapPermission::R | MapPermission::W, None, 0
-//         }
-
-//         // For MMIO(Memory mapped IO).
-//         for &pair in MMIO {
-//             insert_kernel_vm_areas!(memory_set,
-//                 pair.0, pair.0+pair.1, MapPermission::R | MapPermission::W, None, 0);
-//         }
-
-//         memory_set
-//     }));
-// }
 
 use spin::lazy::Lazy;
 pub static KERNEL_VMM: Lazy<Arc<Mutex<MemorySet>>> = Lazy::new(|| {
@@ -101,27 +59,6 @@ pub static KERNEL_VMM: Lazy<Arc<Mutex<MemorySet>>> = Lazy::new(|| {
         ekernel, PHYSICAL_MEM_END,
             MapPermission::R | MapPermission::W, None, 0
     }
-
-    // println!(
-    //     "[kvmm] insert kernel region [text], start: {:#x}, end: {:#x}",
-    //     stext as usize, etext as usize
-    // );
-    // println!(
-    //     "[kvmm] insert kernel region [rodata], start: {:#x}, end: {:#x}",
-    //     srodata as usize, erodata as usize
-    // );
-    // println!(
-    //     "[kvmm] insert kernel region [data], start: {:#x}, end: {:#x}",
-    //     sdata as usize, edata as usize
-    // );
-    // println!(
-    //     "[kvmm] insert kernel region [bss], sbss: {:#x}, ebss: {:#x}, skstack0: {:#x}, ekstack0: {:#x}",
-    //     sbss as usize, ebss as usize, skstack0 as usize, ekstack0 as usize
-    // );
-    // println!(
-    //     "[kvmm] insert kernel region [else], start: {:#x}, end: {:#x}",
-    //     ekernel as usize, PHYSICAL_MEM_END
-    // );
 
     // For MMIO(Memory mapped IO).
     #[cfg(feature = "qemu")]
@@ -178,24 +115,24 @@ pub static KERNEL_VMM: Lazy<Arc<Mutex<MemorySet>>> = Lazy::new(|| {
             }
         }
 
-        mmio_map_region.iter().map(|x| {
-            let start = x.start;
-            let end = x.end;
-            println!(
-                "[kvmm] insert mmio region, start: {:#x}, end: {:#x}",
-                start, end
-            );
-        });
+        // mmio_map_region.iter().map(|x| {
+        //     let start = x.start;
+        //     let end = x.end;
+        //     println!(
+        //         "[kvmm] insert mmio region, start: {:#x}, end: {:#x}",
+        //         start, end
+        //     );
+        // });
 
         for pair in mmio_map_region.iter() {
             if pair.start <= mapped_region.start && pair.end >= mapped_region.end {
                 continue;
             }
 
-            println!(
-                "[kvmm] insert mmio region, start: {:#x}, end: {:#x}",
-                pair.start, pair.end
-            );
+            // println!(
+            //     "[kvmm] insert mmio region, start: {:#x}, end: {:#x}",
+            //     pair.start, pair.end
+            // );
             insert_kernel_vm_areas!(
                 memory_set,
                 pair.start,
@@ -205,10 +142,9 @@ pub static KERNEL_VMM: Lazy<Arc<Mutex<MemorySet>>> = Lazy::new(|| {
                 0
             );
         }
-        println!("except mapped_region, mapped mmio finnished");
+        // println!("except mapped_region, mapped mmio finnished");
     }
-    // let token = memory_set.token();
-    // println!("token: {:#x}", token);
+
     Arc::new(Mutex::new(memory_set))
 });
 

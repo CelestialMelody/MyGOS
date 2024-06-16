@@ -96,7 +96,8 @@ pub fn sys_clock_nanosleep(
 }
 
 // getrandom 278
-pub fn sys_getrandom(buf: *const u8, buf_size: usize, flags: usize) -> Result {
+// TODO
+pub fn sys_getrandom(_buf: *const u8, buf_size: usize, _flags: usize) -> Result {
     Ok(buf_size as isize)
 }
 

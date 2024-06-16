@@ -1,15 +1,10 @@
 extern crate alloc;
 
-use super::{get_blk_device, BlkDriver, DeviceType, DeviceWapper, Driver};
+use super::{BlkDriver, DeviceType, DeviceWapper, Driver};
 use alloc::sync::Arc;
 
-// use cv1811h_sd::clk_enable;
-use super::cv1811h_sd::{self, clk_enable, init};
-
 use fat32::BlockDevice;
-// use crate::fat32::BlockDevice;
 
-use fdt::node::FdtNode;
 use spin::Mutex;
 
 pub struct CvSd;
@@ -20,7 +15,6 @@ impl CvSd {
     }
 }
 
-// need?
 pub struct CvSdWrapper(Mutex<CvSd>);
 // pub struct CvSdWrapper(CvSd);
 
@@ -50,15 +44,15 @@ impl Driver for CvSd {
 
 impl BlkDriver for CvSd {
     fn read_block(&self, block_id: usize, buf: &mut [u8]) {
-        cv1811h_sd::clk_enable(true);
-        cv1811h_sd::read_block(block_id as _, buf).expect("can't read block by using CvSd");
-        cv1811h_sd::clk_enable(false);
+        cv1812h_sd::clk_enable(true);
+        cv1812h_sd::read_block(block_id as _, buf).expect("can't read block by using CvSd");
+        cv1812h_sd::clk_enable(false);
     }
 
     fn write_block(&self, block_id: usize, buf: &[u8]) {
-        cv1811h_sd::clk_enable(true);
-        cv1811h_sd::write_block(block_id as _, buf).expect("can't write block by using CvSd");
-        cv1811h_sd::clk_enable(false);
+        cv1812h_sd::clk_enable(true);
+        cv1812h_sd::write_block(block_id as _, buf).expect("can't write block by using CvSd");
+        cv1812h_sd::clk_enable(false);
     }
 }
 
@@ -75,9 +69,7 @@ impl BlockDevice for CvSdWrapper {
 }
 
 pub fn init_blk_driver() {
-    println!("test 1.1");
-    cv1811h_sd::init().expect("init with err");
-    println!("Initailize blk device");
+    cv1812h_sd::init().expect("init with err");
 }
 #[cfg(feature = "cvitex")]
 pub type BlockDeviceImpl = CvSdWrapper;

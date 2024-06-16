@@ -424,7 +424,7 @@ impl MemorySet {
             match area.area_type {
                 VmAreaType::TrapContext => {
                     // 对于 TrapContext, 不采用 COW, 直接复制
-                    let mut new_area = VmArea::from_another(area);
+                    let new_area = VmArea::from_another(area);
                     new_memory_set.insert_and_map(new_area, None);
                     for vpn in area.vpn_range {
                         let src_ppn = parent_page_table.translate(vpn).unwrap().ppn();

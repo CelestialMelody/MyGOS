@@ -8,7 +8,7 @@ use crate::{
         current_add_signal, current_task, current_trap_cx, exec_signal_handlers,
         suspend_current_and_run_next,
     },
-    timer::{check_interval_timer, get_timeval, set_next_trigger},
+    timer::{check_interval_timer, get_timeval},
 };
 use nix::SigSet;
 use riscv::register::{mcause, mtval};

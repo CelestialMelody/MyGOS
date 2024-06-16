@@ -1,15 +1,9 @@
-use core::fmt::{self, Write};
-
-use spin::Mutex;
-
 use crate::sbi::console_putchar;
+use core::fmt::{self, Write};
 
 struct Stdout;
 
 #[cfg(feature = "multi-harts")]
-// lazy_static! {
-//     static ref CONSOLE_PRINT_LOCK: Mutex<()> = Mutex::new(());
-// }
 static CONSOLE_PRINT_LOCK: spin::Lazy<Mutex<()>> = Lazy::new(|| Mutex::new(()));
 
 impl Write for Stdout {

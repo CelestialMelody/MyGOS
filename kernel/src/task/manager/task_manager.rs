@@ -1,6 +1,5 @@
 use super::HangingTask;
 use crate::syscall::futex::FutexQueue;
-use crate::syscall::impls::FUTEX_QUEUE;
 use crate::task::TaskControlBlock;
 use crate::timer::get_time_ns;
 use alloc::collections::{BinaryHeap, VecDeque};

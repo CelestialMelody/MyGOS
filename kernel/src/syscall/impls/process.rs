@@ -221,7 +221,6 @@ pub fn sys_getpid() -> Result {
 
 // set_tid_address 96
 pub fn sys_set_tid_address(tidptr: *mut usize) -> Result {
-    let token = current_user_token();
     let task = current_task().unwrap();
     task.inner_mut().clear_child_tid = tidptr as usize;
     Ok(task.pid() as isize)
@@ -243,11 +242,12 @@ pub fn sys_geteuid() -> Result {
 }
 
 // ppoll 73
+// TODO
 pub fn sys_ppoll(
-    fds: usize,
-    nfds: usize,
-    tmo_p: *const TimeSpec,
-    sigmask: *const SigMask,
+    _fds: usize,
+    _nfds: usize,
+    _tmo_p: *const TimeSpec,
+    _sigmask: *const SigMask,
 ) -> Result {
     Ok(1)
 }
@@ -325,7 +325,7 @@ pub fn sys_getrusage(who: isize, usage: *mut u8) -> Result {
     ));
     let mut rusage = RUsage::new();
     let task = current_task().unwrap();
-    let mut inner = task.inner_mut();
+    let inner = task.inner_ref();
     rusage.ru_stime = inner.stime;
     rusage.ru_utime = inner.utime;
     userbuf.write(rusage.as_bytes());
@@ -333,7 +333,8 @@ pub fn sys_getrusage(who: isize, usage: *mut u8) -> Result {
 }
 
 // tgkill 131
-pub fn sys_tgkill(tgid: isize, tid: usize, sig: isize) -> Result {
+// TODO
+pub fn sys_tgkill(tgid: isize, tid: usize, _sig: isize) -> Result {
     if tgid == -1 {
         todo!(
             "Send the corresponding signal to all threads within\n
@@ -344,7 +345,7 @@ pub fn sys_tgkill(tgid: isize, tid: usize, sig: isize) -> Result {
     let son_pid = tid;
     if let Some(parent_task) = pid2task(master_pid) {
         let inner = parent_task.inner_mut();
-        if let Some(target_task) = inner.children.iter().find(|child| child.pid() == son_pid) {
+        if let Some(_target_task) = inner.children.iter().find(|child| child.pid() == son_pid) {
             todo!("Send Signal")
         } else {
             todo!("errno")
@@ -355,7 +356,8 @@ pub fn sys_tgkill(tgid: isize, tid: usize, sig: isize) -> Result {
 }
 
 // sched_getaffinity 123
-pub fn sys_sched_getaffinity(pid: usize, cpusetsize: usize, mask: *mut u8) -> Result {
+// TODO
+pub fn sys_sched_getaffinity(_pid: usize, cpusetsize: usize, mask: *mut u8) -> Result {
     let token = current_user_token();
     let mut userbuf = UserBuffer::wrap(translated_bytes_buffer(token, mask, cpusetsize));
 
@@ -370,9 +372,10 @@ pub fn sys_sched_getaffinity(pid: usize, cpusetsize: usize, mask: *mut u8) -> Re
 }
 
 // sched_setaffinity 122
-pub fn sys_sched_setaffinity(pid: usize, cpusetsize: usize, mask: *const u8) -> Result {
+// TODO
+pub fn sys_sched_setaffinity(_pid: usize, cpusetsize: usize, mask: *const u8) -> Result {
     let token = current_user_token();
-    let mut userbuf = UserBuffer::wrap(translated_bytes_buffer(token, mask, cpusetsize));
+    let userbuf = UserBuffer::wrap(translated_bytes_buffer(token, mask, cpusetsize));
 
     let mut cpuset = CpuMask::new();
     userbuf.read(cpuset.as_bytes_mut());
@@ -380,7 +383,8 @@ pub fn sys_sched_setaffinity(pid: usize, cpusetsize: usize, mask: *const u8) -> 
 }
 
 // getscheduler 120
-pub fn sys_getscheduler(pid: usize) -> Result {
+// TODO
+pub fn sys_getscheduler(_pid: usize) -> Result {
     // let task = pid2task(pid).ok_or(SyscallError::PidNotFound(-1, pid as isize))?;
     // let inner = task.read();
     // Ok(inner.policy as isize)
@@ -388,7 +392,8 @@ pub fn sys_getscheduler(pid: usize) -> Result {
 }
 
 // sched_getparam 121
-pub fn sys_sched_getparam(pid: usize, param: *mut SchedParam) -> Result {
+// TODO
+pub fn sys_sched_getparam(_pid: usize, param: *mut SchedParam) -> Result {
     // let task = pid2task(pid).ok_or(SyscallError::PidNotFound(-1, pid as isize))?;
     // let inner = task.read();
     let token = current_user_token();
@@ -399,8 +404,9 @@ pub fn sys_sched_getparam(pid: usize, param: *mut SchedParam) -> Result {
 }
 
 // sched_setscheduler 119
-pub fn sys_sched_setscheduler(pid: usize, policy: isize, param: *const SchedParam) -> Result {
-    let task = pid2task(pid).ok_or(Errno::DISCARD)?;
+// TODO
+pub fn sys_sched_setscheduler(pid: usize, policy: isize, _param: *const SchedParam) -> Result {
+    let _task = pid2task(pid).ok_or(Errno::DISCARD)?;
 
     {
         info!("sched_setscheduler: pid: {}, policy: {}", pid, policy);
@@ -413,7 +419,8 @@ pub fn sys_sched_setscheduler(pid: usize, policy: isize, param: *const SchedPara
 }
 
 // clock_getres 114
-pub fn sys_clock_getres(clockid: usize, res: *mut TimeSpec) -> Result {
+// TODO
+pub fn sys_clock_getres(_clockid: usize, res: *mut TimeSpec) -> Result {
     let token = current_user_token();
     let user_res = translated_mut(token, res);
     // 赋值看的测试样例 TODO
@@ -423,7 +430,8 @@ pub fn sys_clock_getres(clockid: usize, res: *mut TimeSpec) -> Result {
 }
 
 // socketpair 199
-pub fn sys_socketpair(domain: isize, _type: isize, _protocol: isize, sv: *mut [i32; 2]) -> Result {
+// TODO
+pub fn sys_socketpair(_domain: isize, _type: isize, _protocol: isize, sv: *mut [i32; 2]) -> Result {
     let token = current_user_token();
     let task = current_task().unwrap();
     let user_sv = translated_mut(token, sv);
@@ -465,7 +473,7 @@ pub fn sys_sigreturn() -> Result {
     // 还原被保存的 signal_context
     let sig_context_ptr = trap_cx.x[2]; // 函数调用保证了 x[2] 的值是 sig_context 的地址 (user signal handler 执行前后 x[2] 值不变)
     trap_cx.x[2] += core::mem::size_of::<SignalContext>();
-    let siginfo_ptr = trap_cx.x[2];
+    // let _siginfo_ptr = trap_cx.x[2];
     trap_cx.x[2] += core::mem::size_of::<SigInfo>();
     let ucontext_ptr = trap_cx.x[2];
     trap_cx.x[2] += core::mem::size_of::<UContext>();
@@ -486,7 +494,6 @@ pub fn sys_sigreturn() -> Result {
 pub fn sys_sigaction(signum: isize, act: *const SigAction, oldact: *mut SigAction) -> Result {
     let token = current_user_token();
     let task = current_task().unwrap();
-    let mut inner = task.inner_mut();
     let signum = signum as u32;
 
     // signum 超出范围, 返回错误
@@ -528,11 +535,12 @@ pub fn sys_sigaction(signum: isize, act: *const SigAction, oldact: *mut SigActio
 }
 
 // sigprocmask 135
+// TODO
 pub fn sys_sigprocmask(
     how: usize,
     set: *const usize,
     old_set: *mut usize,
-    sigsetsize: usize,
+    _sigsetsize: usize,
 ) -> Result {
     let token = current_user_token();
     let task = current_task().unwrap();

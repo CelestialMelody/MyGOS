@@ -4,7 +4,7 @@ use alloc::{
 };
 use nix::Kstat;
 
-use crate::{fs::file::File, mm::UserBuffer};
+use crate::{fs::File, mm::UserBuffer};
 
 pub struct Stdout;
 

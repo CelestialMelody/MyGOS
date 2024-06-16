@@ -12,7 +12,6 @@ use crate::{
     task::{current_task, current_user_token},
 };
 
-use bitflags::Flags;
 use nix::ipc::{IPC_PRIVATE, IPC_RMID};
 use nix::MmapFlags;
 use nix::MmapProts;
@@ -86,7 +85,8 @@ pub fn sys_shmget(key: usize, size: usize, shmflg: usize) -> Result {
 }
 
 // shmctl 195
-pub fn sys_shmctl(key: usize, cmd: usize, buf: *const u8) -> Result {
+// TODO
+pub fn sys_shmctl(key: usize, cmd: usize, _buf: *const u8) -> Result {
     if cmd == IPC_RMID {
         remove_shm(key);
     } else {
@@ -96,7 +96,8 @@ pub fn sys_shmctl(key: usize, cmd: usize, buf: *const u8) -> Result {
 }
 
 // shmat 196
-pub fn sys_shmat(key: usize, address: usize, shmflg: usize) -> Result {
+// TODO
+pub fn sys_shmat(key: usize, address: usize, _shmflg: usize) -> Result {
     let task = current_task().unwrap();
     let mut memory_set = task.memory_set.write();
     let address = if address == 0 {
@@ -153,7 +154,6 @@ pub fn sys_mprotect(addr: usize, length: usize, prot: usize) -> Result {
                     .set_prot(mmap_perm);
                 continue;
             }
-            let va: VirtAddr = vpn.into();
             return_errno!(Errno::EINVAL, "invalid address: {:?}", va);
         }
     }
