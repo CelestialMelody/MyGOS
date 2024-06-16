@@ -25,3 +25,19 @@ busybox_tail:
 test_all_custom_entry:
 	.incbin "src/task/initproc/test_all_custom.sh"
 test_all_custom_tail:
+
+.align 3
+.section .data
+.globl busybox_testcode_entry
+.globl busybox_testcode_tail
+busybox_testcode_entry:
+	.incbin "src/task/initproc/busybox_testcode.sh"
+busybox_testcode_tail:
+
+.align 3
+.section .data
+.globl busybox_test_cmd_entry
+.globl busybox_test_cmd_tail
+busybox_test_cmd_entry:
+	.incbin "src/task/initproc/busybox_cmd.txt"
+busybox_test_cmd_tail:
